@@ -1,0 +1,24 @@
+.side-menu {
+    width: 250px;
+    height: 100%;
+    position: fixed;
+    top: 0;
+    left: -250px;
+    background-color: #333;
+    transition: left 0.3s ease;
+}
+
+.side-menu.open {
+    left: 0;
+}
+
+.menu-items {
+    list-style-type: none;
+    padding: 0;
+}
+
+.toggle-btn {
+    position: absolute;
+    top: 10px;
+    left: 270px;
+}

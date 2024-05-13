@@ -1,23 +1,24 @@
-import logo from './logo.svg';
 import './App.css';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import SubirArchivo from './components/SubirArchivo';
+import InicioSesion from './components/InicioSesion';
+import Dashboard from './components/Dashboard';
+import MisDatasets from './components/MisDatasets';
+import InformesGenerados from './components/InformesGenerados';
+import Grafica from './components/Grafica';
 
 function App() {
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <Routes>
+        <Route path="/" element={<Navigate to="/inicioSesion" />} />
+        <Route path="/inicioSesion" element={<InicioSesion />} />
+        <Route path="/subir-archivo" element={<SubirArchivo />} />
+        <Route path="/dashboard" element={<Dashboard/>} />
+        <Route path="/misDatasets" element={<MisDatasets/>} />
+        <Route path="/informesGenerados" element={<InformesGenerados/>} />
+        <Route path="/nueva-grafica" element={<Grafica/>} />
+      </Routes>
     </div>
   );
 }
