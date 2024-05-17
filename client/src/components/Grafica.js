@@ -21,10 +21,14 @@ const Grafica = () => {
     const [disabled2, setDisabled2] = useState('');
     const [showSecondStep, setShowSecondStep] = useState(false);
     const [showThirdStep, setShowThirdStep] = useState(false);
+    const [hayDatos, setHayDatos] = useState(false);
 
     const [titulo, setTitulo] = useState('');
     const [labelEjeX, setLabelEjeX] = useState('');
+    const [valueEjeX, setValueEjeX] = useState('');
+    const [valueHue, setValueHue] = useState('');
     const [labelEjeY, setLabelEjeY] = useState('');
+    const [valueEjeY, setValueEjeY] = useState('');
 
     useEffect(() => {
         fetch('/files')
@@ -32,12 +36,16 @@ const Grafica = () => {
             .then(data => {
                 setOptions(data);
                 setSelectedOption(data.options[0]); // Establecer la primera opción como seleccionada por defecto
+                if (data.options.length !== 0) {
+                    setHayDatos(true);
+                }
             })
             .catch(error => console.error('Error al obtener las opciones:', error));
     }, []);
 
     const handleOptionChange = (option) => {
         setSelectedCheck(option);
+        setDisabled2(false);
     };
 
     const handleSelectChange = (option) => {
@@ -55,6 +63,10 @@ const Grafica = () => {
         setShowThirdStep(true);
     }
 
+    const handleBtnCargar = () => {
+        window.location.href = '/subir-archivo';
+    }
+
     const handleSubmit = (event) => {
         event.preventDefault();
 
@@ -63,7 +75,10 @@ const Grafica = () => {
         formData.append('tipoGrafica', selectedCheck);
         formData.append('titulo', titulo);
         formData.append('labelEjeX', labelEjeX);
+        formData.append('valueEjeX', valueEjeX);
         formData.append('labelEjeY', labelEjeY);
+        formData.append('valueEjeY', valueEjeY);
+        formData.append('valueHue', valueHue);
 
         fetch('/generaGrafica', {
             method: 'POST',
@@ -84,108 +99,124 @@ const Grafica = () => {
         <div>
             <div className="footer-container">
             <Navbar/>
-            <form className='form' onSubmit={handleSubmit}>
-                <div className='container mt-5'>
-                    <div id="primerPaso">
-                        <h2>Origen de datos</h2>
-                        <br/>
-                        <select value={selectedOption} onChange={handleSelectChange} id='selectDatos'>
-                            {Object.entries(options).map(([key, value]) => (
-                                <option key={key} value={value}>{value}</option>
-                            ))}
-                        </select>
-                        <br/><br/>
-                        <button className="btn btn-primary" disabled={disabled1} onClick={handleContinue1}>Continuar</button>
-                    </div>
-                    <br/>
-                    {showSecondStep && (
-                        <div id="segundoPaso" className='form-check'>
-                            <hr className="separator" />
-                            <h2>Gráfica</h2>
+            <h1>Nueva Gráfica</h1>
+            <hr className="separator" />
+            {hayDatos && (
+            <div>
+                <form className='form' onSubmit={handleSubmit}>
+                    <div className='container mt-5'>
+                        <div id="primerPaso">
+                            <h2>Origen de datos</h2>
                             <br/>
-                            <div className="row">
-                                <div className="col-sm-4">
-                                    <h4>Countplot</h4>
-                                    <div className="mb-3">
-                                        <label className="form-check-label" htmlFor="countplot"><img src={grafica1} alt='img' style={{ width: '50%' }}/></label>
-                                        <input className="form-check-input" type="radio" id="countplot" checked={selectedCheck === 'countplot'} onChange={() => handleOptionChange('countplot')} />
-                                    </div>
-                                </div>
-                                <div className="col-sm-4">
-                                    <h4>Barplot</h4>
-                                    <div className="mb-3">
-                                        <label className="form-check-label" htmlFor="histplot"><img src={grafica2} alt='img' style={{ width: '50%' }}/></label>
-                                        <input className="form-check-input" type="radio" id="histplot" checked={selectedCheck === 'histplot'} onChange={() => handleOptionChange('histplot')} />
-                                    </div>
-                                </div>
-                                <div className="col-sm-4">
-                                    <h4>Boxplot</h4>
-                                    <div className="mb-3">
-                                        <label className="form-check-label" htmlFor="boxplot"><img src={grafica3} alt='img' style={{ width: '50%' }}/></label>
-                                        <input className="form-check-input" type="radio" id="boxplot" checked={selectedCheck === 'boxplot'} onChange={() => handleOptionChange('boxplot')} />
-                                    </div>
-                                </div>
-                            </div>
+                            <select value={selectedOption} onChange={handleSelectChange} id='selectDatos'>
+                                {Object.entries(options).map(([key, value]) => (
+                                    <option key={key} value={value}>{value}</option>
+                                ))}
+                            </select>
                             <br/><br/>
-                            <div className="row">
-                                <div className="col-sm-4">
-                                    <h4>Scatterplot</h4>
-                                    <div className="mb-3">
-                                        <label className="form-check-label" htmlFor="scatterplot"><img src={grafica5} alt='img' style={{ width: '50%' }}/></label>
-                                        <input className="form-check-input" type="radio" id="scatterplot" checked={selectedCheck === 'scatterplot'} onChange={() => handleOptionChange('scatterplot')} />
+                            <button className="btn btn-primary" disabled={disabled1} onClick={handleContinue1}>Continuar</button>
+                        </div>
+                        <br/>
+                        {showSecondStep && (
+                            <div id="segundoPaso" className='form-check'>
+                                <hr className="separator" />
+                                <h2>Gráfica</h2>
+                                <br/>
+                                <div className="row">
+                                    <div className="col-sm-4">
+                                        <h4>Countplot</h4>
+                                        <div className="mb-3">
+                                            <label className="form-check-label" htmlFor="countplot"><img src={grafica1} alt='img' style={{ width: '50%' }}/></label>
+                                            <input className="form-check-input" type="radio" id="countplot" checked={selectedCheck === 'countplot'} onChange={() => handleOptionChange('countplot')} />
+                                        </div>
+                                    </div>
+                                    <div className="col-sm-4">
+                                        <h4>Barplot</h4>
+                                        <div className="mb-3">
+                                            <label className="form-check-label" htmlFor="histplot"><img src={grafica2} alt='img' style={{ width: '50%' }}/></label>
+                                            <input className="form-check-input" type="radio" id="histplot" checked={selectedCheck === 'histplot'} onChange={() => handleOptionChange('histplot')} />
+                                        </div>
+                                    </div>
+                                    <div className="col-sm-4">
+                                        <h4>Boxplot</h4>
+                                        <div className="mb-3">
+                                            <label className="form-check-label" htmlFor="boxplot"><img src={grafica3} alt='img' style={{ width: '50%' }}/></label>
+                                            <input className="form-check-input" type="radio" id="boxplot" checked={selectedCheck === 'boxplot'} onChange={() => handleOptionChange('boxplot')} />
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="col-sm-4">
-                                    <h4>Heatmap</h4>
-                                    <div className="mb-3">
-                                        <label className="form-check-label" htmlFor="heatmap"><img src={grafica6} alt='img' style={{ width: '50%' }}/></label>
-                                        <input className="form-check-input" type="radio" id="heatmap" checked={selectedCheck === 'heatmap'} onChange={() => handleOptionChange('heatmap')} />
+                                <br/><br/>
+                                <div className="row">
+                                    <div className="col-sm-4">
+                                        <h4>Scatterplot</h4>
+                                        <div className="mb-3">
+                                            <label className="form-check-label" htmlFor="scatterplot"><img src={grafica5} alt='img' style={{ width: '50%' }}/></label>
+                                            <input className="form-check-input" type="radio" id="scatterplot" checked={selectedCheck === 'scatterplot'} onChange={() => handleOptionChange('scatterplot')} />
+                                        </div>
+                                    </div>
+                                    <div className="col-sm-4">
+                                        <h4>Heatmap</h4>
+                                        <div className="mb-3">
+                                            <label className="form-check-label" htmlFor="heatmap"><img src={grafica6} alt='img' style={{ width: '50%' }}/></label>
+                                            <input className="form-check-input" type="radio" id="heatmap" checked={selectedCheck === 'heatmap'} onChange={() => handleOptionChange('heatmap')} />
+                                        </div>
                                     </div>
                                 </div>
+                                <br/><br/>
+                                <button className="btn btn-primary" disabled={disabled2} onClick={handleContinue2}>Continuar</button>
                             </div>
-                            <br/><br/>
-                            <button className="btn btn-primary" disabled={disabled2} onClick={handleContinue2}>Continuar</button>
-                        </div>
-                    )}
-                    <br/>
-                    {showThirdStep && selectedCheck === 'countplot' && (
-                        <div id="tercerPaso" className='form-check'>
-                            <hr className="separator" />
-                            <h2>Parámetros</h2>
-                            <Countplot titulo={titulo} setTitulo={setTitulo} labelEjeX={labelEjeX} setLabelEjeX={setLabelEjeX} labelEjeY={labelEjeY} setLabelEjeY={setLabelEjeY}/>
-                        </div>
-                    )}
-                    {showThirdStep && selectedCheck === 'histplot' && (
-                        <div id="tercerPaso" className='form-check'>
-                            <hr className="separator" />
-                            <h2>Parámetros</h2>
-                            <Histplot titulo={titulo} setTitulo={setTitulo} labelEjeX={labelEjeX} setLabelEjeX={setLabelEjeX} labelEjeY={labelEjeY} setLabelEjeY={setLabelEjeY}/>
-                        </div>
-                    )}
-                    {showThirdStep && selectedCheck === 'boxplot' && (
-                        <div id="tercerPaso" className='form-check'>
-                            <hr className="separator" />
-                            <h2>Parámetros</h2>
-                            <Boxplot titulo={titulo} setTitulo={setTitulo} labelEjeX={labelEjeX} setLabelEjeX={setLabelEjeX} labelEjeY={labelEjeY} setLabelEjeY={setLabelEjeY}/>
-                        </div>
-                    )}
-                    {showThirdStep && selectedCheck === 'scatterplot' && (
-                        <div id="tercerPaso" className='form-check'>
-                            <hr className="separator" />
-                            <h2>Parámetros</h2>
-                            <Scatterplot titulo={titulo} setTitulo={setTitulo} labelEjeX={labelEjeX} setLabelEjeX={setLabelEjeX} labelEjeY={labelEjeY} setLabelEjeY={setLabelEjeY}/>
-                        </div>
-                    )}
+                        )}
+                        <br/>
+                        {showThirdStep && selectedCheck === 'countplot' && (
+                            <div id="tercerPaso" className='form-check'>
+                                <hr className="separator" />
+                                <h2>Parámetros</h2>
+                                <Countplot titulo={titulo} setTitulo={setTitulo} labelEjeX={labelEjeX} setLabelEjeX={setLabelEjeX} valueEjeX={valueEjeX} setValueEjeX={setValueEjeX} labelEjeY={labelEjeY} setLabelEjeY={setLabelEjeY} valueEjeY={valueEjeY} setValueEjeY={setValueEjeY} valueHue={valueHue} setValueHue={setValueHue}/>
+                            </div>
+                        )}
+                        {showThirdStep && selectedCheck === 'histplot' && (
+                            <div id="tercerPaso" className='form-check'>
+                                <hr className="separator" />
+                                <h2>Parámetros</h2>
+                                <Histplot titulo={titulo} setTitulo={setTitulo} labelEjeX={labelEjeX} setLabelEjeX={setLabelEjeX} valueEjeX={valueEjeX} setValueEjeX={setValueEjeX} labelEjeY={labelEjeY} setLabelEjeY={setLabelEjeY} valueEjeY={valueEjeY} setValueEjeY={setValueEjeY} valueHue={valueHue} setValueHue={setValueHue}/>
+                            </div>
+                        )}
+                        {showThirdStep && selectedCheck === 'boxplot' && (
+                            <div id="tercerPaso" className='form-check'>
+                                <hr className="separator" />
+                                <h2>Parámetros</h2>
+                                <Boxplot titulo={titulo} setTitulo={setTitulo} labelEjeX={labelEjeX} setLabelEjeX={setLabelEjeX} valueEjeX={valueEjeX} setValueEjeX={setValueEjeX} labelEjeY={labelEjeY} setLabelEjeY={setLabelEjeY} valueEjeY={valueEjeY} setValueEjeY={setValueEjeY}/>
+                            </div>
+                        )}
+                        {showThirdStep && selectedCheck === 'scatterplot' && (
+                            <div id="tercerPaso" className='form-check'>
+                                <hr className="separator" />
+                                <h2>Parámetros</h2>
+                                <Scatterplot titulo={titulo} setTitulo={setTitulo} labelEjeX={labelEjeX} setLabelEjeX={setLabelEjeX} valueEjeX={valueEjeX} setValueEjeX={setValueEjeX} labelEjeY={labelEjeY} setLabelEjeY={setLabelEjeY} valueEjeY={valueEjeY} setValueEjeY={setValueEjeY} valueHue={valueHue} setValueHue={setValueHue}/>
+                            </div>
+                        )}
 
-                    {showThirdStep && selectedCheck === 'heatmap' && (
-                        <div id="tercerPaso" className='form-check'>
-                            <hr className="separator" />
-                            <h2>Parámetros</h2>
-                            <Heatmap titulo={titulo} setTitulo={setTitulo}/>
+                        {showThirdStep && selectedCheck === 'heatmap' && (
+                            <div id="tercerPaso" className='form-check'>
+                                <hr className="separator" />
+                                <h2>Parámetros</h2>
+                                <Heatmap titulo={titulo} setTitulo={setTitulo}/>
+                            </div>
+                        )}
                         </div>
-                    )}
+                    </form>
                 </div>
-            </form>
+                )}
+                {!hayDatos && (
+                    <div>
+                        <hr className="separator" />
+                        <h2>No existen archivos de datos cargados para este usuario</h2>
+                        <hr className="separator" />
+                        <div className="btn-container mb-3">
+                            <button className="btn btn-primary btn-lg px-5" onClick={handleBtnCargar}>Cargar archivo</button>
+                        </div>
+                    </div>
+                )}
             </div>
             <Footer/>
         </div>

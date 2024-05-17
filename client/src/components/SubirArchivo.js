@@ -7,6 +7,8 @@ function FileUploadForm() {
 
   const [msg, setMsg] = useState(null);
 
+  const [alert, setAlert] = useState(null);
+
   const handleFileChange = (event) => {
     setFile(event.target.files[0]);
   };
@@ -27,16 +29,25 @@ function FileUploadForm() {
       })
       .then(response => {
         if (response.ok) {
+            setAlert('alert alert-success mt-3');
             setMsg('¡Archivo enviado con éxito!');
             console.log('¡Archivo enviado con éxito!');
             formRef.current.reset();
             formRef.current.querySelector('input[type="file"]').value = "";
         } else {
           console.error('Error al enviar el archivo.');
+          setAlert('alert alert-danger mt-3');
+          setMsg('Error al enviar el archivo.');
         }
       })
-      .catch(error => console.error('Error de red:', error));
+      .catch(error => {
+        console.error('Error de red:', error)
+        setAlert('alert alert-danger mt-3');
+        setMsg('Error de red. ' + error);
+      });
     } else {
+      setAlert('alert alert-danger mt-3');
+      setMsg('Debes seleccionar un archivo antes de enviarlo.');
       console.error('Debes seleccionar un archivo antes de enviarlo.');
     }
 
@@ -46,17 +57,16 @@ function FileUploadForm() {
     <div>
       <NavBar />
       <div className='container mt-5'>
-        <h2 className="mb-4">Formulario de Carga de Archivos</h2>
+        <h2 className="mb-4">Carga de Archivos de datos</h2>
         <form onSubmit={handleSubmit} ref={formRef} encType='multipart/form-data'>
             <div className="mb-3">
-                <input className="form-control" type="file" onChange={handleFileChange} />
+                <input className="form-control" type="file" onChange={handleFileChange} required/>
             </div>
             <button className="btn btn-primary" type="submit">Enviar Archivo</button>
         </form>
         {(msg !== null) && (
-            <div className="alert alert-success mt-3" role="alert">{msg}</div>
-        )
-        }
+            <div className={alert} role="alert">{msg}</div>
+        )}
       </div>
       <Footer />
     </div>
