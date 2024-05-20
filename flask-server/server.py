@@ -115,6 +115,56 @@ def logout():
     GENERATED_GRAPHICS.clear()
     return 'Logout exitoso', 200
 
+# URL para validar los datos de archivos cargados
+@app.route('/validar', methods=['POST'])
+def preview_file():
+    # Obtener el nombre del archivo seleccionado
+    file = request.files['file']
+    fileName = file.filename
+
+    # Leer el archivo CSV seleccionado
+    df = pd.read_csv(UPLOADED_FILES[fileName])
+
+    # Obtener los registros con al menos un campo nulo
+    null_records = df[df.isnull().any(axis=1)]
+
+    # Convertir los registros a formato JSON
+    json_data = null_records.to_json(orient='records')
+
+    # Devolver el JSON como respuesta HTTP
+    return json_data, 200
+
+# URL de visualización de datos de archivo cargado
+@app.route('/verDataset', methods=['POST'])
+def view_dataset():
+    #Recibe el nombre del archivo seleccionado
+    fileName = request.form['fileName']
+    print(fileName)
+
+    #Leer el archivo CSV seleccionado
+    df = pd.read_csv(UPLOADED_FILES[fileName])
+
+    #Convertir el DataFrame a JSON
+    json_data = df.to_json(orient='records')
+
+    #Devolver el JSON como respuesta HTTP
+    return json_data, 200
+
+# URL de eliminación de archivo cargado
+@app.route('/eliminaArchivo', methods=['POST'])
+def eliminaArchivo():
+    # Obtener el nombre del archivo seleccionado
+    filename = request.form['fileName']
+
+    # Eliminar el archivo del diccionario
+    del UPLOADED_FILES[filename]
+
+    # Eliminar el archivo del sistema de archivos
+    os.remove(os.path.join(CSV_FOLDER, filename))
+
+    # Devuelve un mensaje de éxito
+    return 'Archivo eliminado correctamente', 200
+
 # URL de carga de archivos
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -123,10 +173,6 @@ def upload_file():
         return 'No se recibió ningún archivo', 400
     
     file = request.files['file']
-
-    # Comprobar si no se seleccionó ningún archivo
-    if file.filename == '':
-        return 'No se seleccionó ningún archivo', 400
     
     # Comprobar si el archivo tiene el formato permitido
     if file and allowed_file(file.filename):
@@ -142,20 +188,8 @@ def upload_file():
 
         # Convert the DataFrame to JSON
         json_data = df.to_json(orient='records')
-
-        # Do something with the JSON data, such as saving it to a file or sending it as a response
-
-        # Example: Save the JSON data to a file
-        json_filename = os.path.splitext(file.filename)[0] + '.json'
-        json_filepath = os.path.join(CSV_FOLDER, json_filename)
-        with open(json_filepath, 'w') as json_file:
-            json_file.write(json_data)
-
-        # Example: Print the JSON data
-        #print(json_data)
         
-        
-        return 'Archivo cargado exitosamente', 200
+        return json_data, 200
     else:
         return 'Formato de archivo no permitido', 400
 
@@ -188,6 +222,15 @@ def eliminaGrafica():
     # Devuelve un mensaje de éxito
     return 'Gráfica eliminada correctamente', 200
 
+# URL de descarga de grafica generada
+@app.route('/descargaGrafica', methods=['POST'])
+def download_graphic():
+    # Obtener el nombre del archivo seleccionado
+    filename = request.form['fileName']
+
+    # Devolver el archivo como respuesta HTTP
+    return send_file(os.path.join(GRAPHICS_FOLDER, filename), as_attachment=True)
+
 # URL de generación de gráfica
 @app.route('/generaGrafica', methods=['POST'])
 def generaGrafica():
@@ -212,28 +255,14 @@ def generaGrafica():
     df = pd.read_csv(UPLOADED_FILES[filename])
 
     #######Esto es omisible######
-    df.rename(columns={'Group': 'DEMENTIA'}, inplace=True)
-    df.rename(columns={'M/F': 'Sex'}, inplace=True)
+    #df.rename(columns={'Group': 'DEMENTIA'}, inplace=True)
+    #df.rename(columns={'M/F': 'Sex'}, inplace=True)
     df.drop(columns=['MRI ID', 'Subject ID'], inplace=True)
-
-    print(df.head(10).style.set_properties(**{'background-color': 'black', 'color': 'orchid'}))
 
     df.drop(columns=['Hand'], inplace=True)
 
-    print(df.describe().T.style.background_gradient(cmap='tab10'))
-
-    print(df.info())
-
-    print('/n VALORES NULOS... /n')
-
-
-    #print(df.isna().sum())
-
-    print('/n ACTUALIZANDO VALORES NULOS... /n')
-
     df.SES.fillna(0, inplace=True)
     df.MMSE.fillna(df.MMSE.mean(), inplace=True)
-    #print(df.isna().sum())
 
     custom_params = {"axes.spines.right": False, "axes.spines.top": False}
     sns.set_theme(style="ticks", rc=custom_params, palette="bright")
@@ -242,15 +271,15 @@ def generaGrafica():
     if tipoGrafica == 'countplot':
         if valueEjeX and not valueEjeY:
             if valueHue:
-                ax = sns.countplot(data=df, x=valueEjeX, hue=valueHue)
+                sns.countplot(data=df, x=valueEjeX, hue=valueHue)
             else:
-                ax = sns.countplot(data=df, x=valueEjeX)
+                sns.countplot(data=df, x=valueEjeX)
 
         elif valueEjeY and not valueEjeX:
             if valueHue:
-                ay = sns.countplot(data=df, y=valueEjeY, hue=valueHue)
+                sns.countplot(data=df, y=valueEjeY, hue=valueHue)
             else:
-                ay = sns.countplot(data=df, y=valueEjeY)
+                sns.countplot(data=df, y=valueEjeY)
         
         plt.title(titulo, size = 20, weight='bold')
         if labelX:
@@ -259,11 +288,17 @@ def generaGrafica():
             plt.ylabel(labelY)
     
     elif tipoGrafica == 'histplot':
-        if valueHue:
-            sns.histplot(data=df, x=valueEjeX, binwidth=5, kde=True, hue=valueHue)
-        else:
-            sns.histplot(data=df, x=valueEjeX, binwidth=5, kde=True)
-        #sns.histplot(data=df, x=valueEjeX, binwidth=5, kde=True, hue=valueHue)
+        if valueEjeX and not valueEjeY:
+            if valueHue:
+                sns.histplot(data=df, x=valueEjeX, binwidth=5, kde=True, hue=valueHue)
+            else:
+                sns.histplot(data=df, x=valueEjeX, binwidth=5, kde=True)
+        elif valueEjeY and not valueEjeX:
+            if valueHue:
+                sns.histplot(data=df, y=valueEjeY, binwidth=5, kde=True, hue=valueHue)
+            else:
+                sns.histplot(data=df, y=valueEjeY, binwidth=5, kde=True)
+
         plt.title(titulo, size = 20, weight='bold')
         if labelX:
             plt.xlabel(labelX)
@@ -285,15 +320,21 @@ def generaGrafica():
             return 'Debe seleccionar un campo para el eje X y otro para el eje Y', 400
 
     elif tipoGrafica == 'heatmap':
-        dementia_col = df.drop(columns=['DEMENTIA'], inplace=True)
-        sex_col = df.drop(columns=['Sex'], inplace=True)
+        df.drop(columns=['Group'], inplace=True)
+        df.drop(columns=['MRI ID', 'Subject ID'], inplace=True)
+        df.drop(columns=['M/F'], inplace=True)
+        df.drop(columns=['Hand'], inplace=True)
         sns.heatmap(df.corr(), annot=True, fmt=".2f", linewidths=0.7, cbar=True, cmap='RdBu')
         plt.title(titulo, size = 20, weight='bold')
-        df['DEMENTIA'] = dementia_col
-        df['Sex'] = sex_col
 
     elif tipoGrafica == 'boxplot':
-        sns.boxplot(data=df, x='DEMENTIA', y='MMSE', showfliers=False)
+        if valueEjeX and valueEjeY:
+            sns.boxplot(data=df, x=valueEjeX, y=valueEjeY, showfliers=False)
+        elif valueEjeX and not valueEjeY:
+            sns.boxplot(data=df, x=valueEjeX, showfliers=False)
+        elif valueEjeY and not valueEjeX:
+            sns.boxplot(data=df, y=valueEjeY, showfliers=False)
+
         plt.title(titulo, size = 20, weight='bold')
         if labelX:
             plt.xlabel(labelX)
@@ -309,7 +350,6 @@ def generaGrafica():
         #Guardar la gráfica en un archivo
         filename = f'{tipoGrafica}_{num+1}.png'
         filepath = os.path.join(GRAPHICS_FOLDER, filename)
-        print(filepath)
         plt.savefig(filepath)
         plt.close()
         GENERATED_GRAPHICS[filename] = os.path.join('graphics', filename)

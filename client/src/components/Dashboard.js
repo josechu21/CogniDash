@@ -40,7 +40,31 @@ function Dashboard() {
             }
         })
         .catch(error => console.error('Error de red:', error));
-    }
+    };
+
+    const handleBtnDescargar = (event) => {
+        const formData = new FormData();
+        formData.append('fileName', event.target.value);
+
+        fetch('/descargaGrafica', {
+            method: 'POST',
+            body: formData
+        }).then(response => {
+            if (response.ok) {
+                console.log('¡Descarga correcta!');
+                response.blob().then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = event.target.value;
+                    a.click();
+                });
+            } else {
+                console.error('Error al descargar.');
+            }
+        })
+        .catch(error => console.error('Error de red:', error));
+    };
 
     return (
         <div>
@@ -62,6 +86,7 @@ function Dashboard() {
                     <div id={key} key={key} className="grafica col-6">
                         <img src={value} alt="grafica"/>
                         <button className="btn btn-danger btn-lg px-5" value={key} onClick={handleBtnEliminar}>Eliminar</button>
+                        <button className="btn btn-success btn-lg px-5" value={key} onClick={handleBtnDescargar}>Descargar</button>
                     </div>
                 ))}
                 </div>
