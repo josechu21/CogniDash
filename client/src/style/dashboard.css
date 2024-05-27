@@ -1,0 +1,11 @@
+.boton {
+    position: fixed;
+    top: 0;
+    right: 0;
+    margin-top: 60px;
+    margin-right: -50px;
+}
+
+.boton-pad {
+    margin: 3px;
+}

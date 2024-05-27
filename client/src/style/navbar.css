@@ -1,0 +1,23 @@
+.fondo {
+    background-color: rgb(46, 99, 214);
+}
+
+.activo {
+    background-color: #333;
+    color: white;
+    text-decoration: underline;
+}
+
+.btn-nav {
+    border: 2px solid #333;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+}
+
+.btn-nav:hover {
+    background-color: #333;
+    color: white;
+    text-decoration: underline;
+}

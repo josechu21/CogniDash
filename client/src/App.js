@@ -6,6 +6,7 @@ import Dashboard from './components/Dashboard';
 import MisDatasets from './components/MisDatasets';
 import InformesGenerados from './components/InformesGenerados';
 import Grafica from './components/Grafica';
+import NuevaCuenta from './components/NuevaCuenta';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
         <Route path="/misDatasets" element={<MisDatasets/>} />
         <Route path="/informesGenerados" element={<InformesGenerados/>} />
         <Route path="/nueva-grafica" element={<Grafica/>} />
+        <Route path="/nueva-cuenta" element={<NuevaCuenta/>} />
       </Routes>
     </div>
   );

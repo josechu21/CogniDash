@@ -16,6 +16,8 @@ function FileUploadForm() {
   const [btn2Disable, setBtn2Disable] = useState(false);
   const [paso3Load, setPaso3Load] = useState(false);
 
+  const [isMsgFinal, setIsMsgFinal] = useState(false);
+
   const handlePaso2 = () => {
     setParteTres(true);
     setBtn2Disable(true);
@@ -33,21 +35,33 @@ function FileUploadForm() {
       method: 'POST',
       body: formData,
     })
-    .then(response => {
-      if (response.ok) {
-        console.log('¡Datos validados con éxito!');
-        setAlert('alert alert-success mt-3');
-        setMsg('¡Datos validados con éxito!');
-        response.json().then(data => {
-          setNullData(data);
-          setPaso3Load(true);
-        });
-      } else {
-        console.error('Error al validar los datos.');
-        setAlert('alert alert-danger mt-3');
-        setMsg('Error al validar los datos.');
-      }
-    })
+      .then(response => {
+        if (response.ok) {
+          console.log('¡Datos validados con éxito!');
+          setAlert('alert alert-success mt-3');
+          setMsg('¡Datos validados con éxito!');
+          response.json().then(data => {
+            if (data.length === 0) {
+              setAlert('alert alert-success mt-3');
+              setMsg('¡El archivo de datos es correcto!');
+              setPaso3Load(true);
+              setNullData(data);
+            } else {
+              setNullData(data);
+              setPaso3Load(true);
+              window.scrollTo(0, document.body.scrollHeight);
+              setAlert('alert alert-danger mt-3');
+              setMsg('¡El archivo de datos contiene errores!');
+              setBtn1Disable(false);
+            }
+
+          });
+        } else {
+          console.error('Error al validar los datos.');
+          setAlert('alert alert-danger mt-3');
+          setMsg('Error al validar los datos.');
+        }
+      })
   };
 
   const [data, setData] = useState([{}]);
@@ -56,15 +70,51 @@ function FileUploadForm() {
     setFile(event.target.files[0]);
   };
 
-  const handleContinuar = () => {
-    window.location.reload();
+  const handlePaso1 = (event) => {
+    event.preventDefault();
+    if (file) {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Aquí puedes enviar formData al servidor usando fetch o alguna biblioteca de HTTP
+      fetch('/visualizar', {
+        method: 'POST',
+        body: formData,
+      })
+        .then(response => {
+          if (response.ok) {
+            setAlert('alert alert-success mt-3');
+            setMsg('¡Archivo procesado con éxito!');
+            response.json().then(data => {
+              setData(data);
+              setParteDos(true);
+              setBtn1Disable(true);
+              window.scrollTo(0, document.body.scrollHeight);
+            });
+          } else {
+            response.text().then(data => {
+              setAlert('alert alert-danger mt-3');
+              setMsg(data);
+            });
+          }
+        })
+        .catch(error => {
+          console.error('Error de red:', error)
+          setAlert('alert alert-danger mt-3');
+          setMsg('Error de red. ' + error);
+        });
+    } else {
+      setAlert('alert alert-danger mt-3');
+      setMsg('Debes seleccionar un archivo antes de enviarlo.');
+      console.error('Debes seleccionar un archivo antes de enviarlo.');
+    }
   };
 
   const formRef = useRef(null);
 
-  const handleSubmit = (event) => {
+  const handleEnvio = (event) => {
     event.preventDefault();
-    
+
     if (file) {
       const formData = new FormData();
       formData.append('file', file);
@@ -74,28 +124,27 @@ function FileUploadForm() {
         method: 'POST',
         body: formData,
       })
-      .then(response => {
-        if (response.ok) {
+        .then(response => {
+          if (response.ok) {
             setAlert('alert alert-success mt-3');
             setMsg('¡Archivo enviado con éxito!');
-            console.log('¡Archivo enviado con éxito!');
             response.json().then(data => {
               setData(data);
-              setParteDos(true);
-              setBtn1Disable(true);
-              window.scrollTo(0, document.body.scrollHeight);
+              window.location.href = '/misDatasets';
             });
-        } else {
-          console.error('Error al enviar el archivo.');
+          } else {
+            response.text().then(data => {
+              setAlert('alert alert-danger mt-3');
+              setMsg(data);
+              setIsMsgFinal(true);
+            });
+          }
+        })
+        .catch(error => {
+          console.error('Error de red:', error)
           setAlert('alert alert-danger mt-3');
-          setMsg('Error al enviar el archivo.');
-        }
-      })
-      .catch(error => {
-        console.error('Error de red:', error)
-        setAlert('alert alert-danger mt-3');
-        setMsg('Error de red. ' + error);
-      });
+          setMsg('Error de red. ' + error);
+        });
     } else {
       setAlert('alert alert-danger mt-3');
       setMsg('Debes seleccionar un archivo antes de enviarlo.');
@@ -103,6 +152,10 @@ function FileUploadForm() {
     }
 
   };
+
+  const handleLimpiar = () => {
+    window.location.reload();
+  }
 
   return (
     <div>
@@ -112,18 +165,16 @@ function FileUploadForm() {
           <h2 className="mb-4">Carga de Archivos de datos</h2>
           <div id='first'>
             <h4>Paso 1: Sube tu archivo de datos.</h4>
-            <form onSubmit={handleSubmit} ref={formRef} encType='multipart/form-data'>
-                <div className="mb-3">
-                    <input className="form-control" type="file" onChange={handleFileChange} required/>
-                </div>
-                <button className="btn btn-primary" disabled={btn1Disable} type='submit'>Visualizar muestra</button>
+            <form onSubmit={handlePaso1} ref={formRef} encType='multipart/form-data'>
+              <div className="mb-3">
+                <input className="form-control" type="file" onChange={handleFileChange} required />
+              </div>
+              <button className="btn btn-primary" disabled={btn1Disable} type='submit' style={{margin: '2px'}}>Visualizar muestra</button>
+              <button className="btn btn-warning" onClick={handleLimpiar} style={{margin: '2px'}}>Limpiar</button>
             </form>
           </div>
-          {(msg !== null) && (
-              <div className={alert} role="alert">{msg}</div>
-          )}
           {(parteDos) && (<div id='second'>
-            <hr className="mt-5"/>
+            <hr className="mt-5" />
             <h4>Paso 2: Ahora visualiza si los datos son los deseados</h4>
             <table className="table table-striped table-bordered">
               <thead>
@@ -145,50 +196,53 @@ function FileUploadForm() {
             </table>
             <button className="btn btn-primary" disabled={btn2Disable} onClick={handlePaso2}>Continuar</button>
           </div>
-        )}
-        {(parteTres) && (
-        <div id='third'>
-            <hr className="mt-5"/>
-            <h4>Paso 3: Realiza una validación de los datos del archivo</h4>
-            <br/>
-            <button className='btn btn-primary' disabled={paso3Load} onClick={handlePaso3}>Validar datos</button>
-            <br/>
-            <br/>
-            <p>Puedes visualizar todos los que están en estado erróneo</p>
-            {(nullData.length > 0) && (paso3Load) && (
-              <div>
-                <table className="table table-striped table-bordered">
-                  <thead>
-                    <tr>
-                      {Object.keys(data[0]).map((key, index) => (
-                        <th key={index}>{key}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {nullData.map((row, index) => (
-                      <tr key={index}>
-                        {Object.values(row).map((value, index) => (
-                          <td key={index}>{value !== null ? value : <span style={{ color: 'red' }}>NULL</span>}</td>
+          )}
+          {(parteTres) && (
+            <div id='third'>
+              <hr className="mt-5" />
+              <h4>Paso 3: Realiza una validación de los datos del archivo</h4>
+              <br />
+              <button className='btn btn-primary' disabled={paso3Load} onClick={handlePaso3}>Validar datos</button>
+              <br />
+              <br />
+              <p>Puedes visualizar todos los que están en estado erróneo</p>
+              {(nullData.length > 0) && (paso3Load) && (
+                <div>
+                  <table className="table table-striped table-bordered">
+                    <thead>
+                      <tr>
+                        {Object.keys(data[0]).map((key, index) => (
+                          <th key={index}>{key}</th>
                         ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            {(nullData.length === 0) && (paso3Load) && (
-              <div>
-                <div className='alert alert-success mt-3' role='alert'>¿El archivo de datos es correcto!</div>
-                <button className='btn btn-primary' onClick={handleContinuar}>Continuar</button>
-              </div>
-            )}
-          </div>
-        )}
+                    </thead>
+                    <tbody>
+                      {nullData.map((row, index) => (
+                        <tr key={index}>
+                          {Object.values(row).map((value, index) => (
+                            <td key={index}>{value !== null ? value : <span style={{ color: 'red' }}>NULL</span>}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              {(nullData.length === 0) && (paso3Load) && (
+                <div>
+                  <div className='alert alert-success mt-3' role='alert'>¡El archivo de datos es correcto!</div>
+                  <button className='btn btn-success' onClick={handleEnvio}>Añadir</button>
+                </div>
+              )}
+            </div>
+          )}
+          {(((msg !== null) && (nullData.length !== 0)) || isMsgFinal) && (
+            <div className={alert} role="alert">{msg}</div>
+          )}
         </div>
       </div>
       <Footer />
-    </div>
+    </div >
   );
 }
 

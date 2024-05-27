@@ -32,6 +32,8 @@ ALLOWED_EXTENSIONS = {'csv'}
 # Diccionario para almacenar los archivos cargados
 UPLOADED_FILES = {}
 
+UPLOADED_VALIDAR = {}
+
 # Diccionario para almacenar las gráficas generadas
 GENERATED_GRAPHICS = {}
 
@@ -84,7 +86,7 @@ def cleanup_temp_folder(exception=None):
 # Rutas de la API
 ################################################
 
-
+################################################################################################################################################
 # URL de inicio de sesión
 @app.route('/login', methods=['POST'])
 def login():
@@ -96,18 +98,23 @@ def login():
     db.execute(f"SELECT * FROM users WHERE email like '%{email}%' AND password like '%{password}%' AND fec_baja is null")
     user = db.fetchone()  # Obtener el primer usuario que coincida con las credenciales
 
+    USUARIO_LOGIN['id'] = user[0]
     USUARIO_LOGIN['usuario'] = user[1]
+    USUARIO_LOGIN['email'] = user[2]
+    USUARIO_LOGIN['fec_alta'] = user[4]
 
     if user:
         return 'Login exitoso', 200  # Si las credenciales son válidas, devuelve un mensaje de éxito
     else:
         return 'Credenciales incorrectas', 400  # Si las credenciales no son válidas, devuelve un mensaje de error
-    
+
+################################################################################################################################################
 # URL de obtención de usuario
 @app.route('/usuario', methods=['GET'])
 def get_usuario():
     return USUARIO_LOGIN, 200
 
+################################################################################################################################################
 # URL de cierre de sesión
 @app.route('/logout', methods=['GET'])
 def logout():
@@ -115,15 +122,20 @@ def logout():
     GENERATED_GRAPHICS.clear()
     return 'Logout exitoso', 200
 
+################################################################################################################################################
 # URL para validar los datos de archivos cargados
 @app.route('/validar', methods=['POST'])
 def preview_file():
     # Obtener el nombre del archivo seleccionado
     file = request.files['file']
-    fileName = file.filename
+
+    # Guardar el archivo en el sistema de archivos
+    file.save(os.path.join(CSV_FOLDER, secure_filename(file.filename)))
+
+    UPLOADED_VALIDAR[file.filename] = os.path.join(CSV_FOLDER, secure_filename(file.filename))
 
     # Leer el archivo CSV seleccionado
-    df = pd.read_csv(UPLOADED_FILES[fileName])
+    df = pd.read_csv(UPLOADED_VALIDAR[file.filename])
 
     # Obtener los registros con al menos un campo nulo
     null_records = df[df.isnull().any(axis=1)]
@@ -131,18 +143,27 @@ def preview_file():
     # Convertir los registros a formato JSON
     json_data = null_records.to_json(orient='records')
 
+    UPLOADED_VALIDAR.clear()
+
+    # Eliminar el archivo del sistema de archivos
+    os.remove(os.path.join(CSV_FOLDER, secure_filename(file.filename)))
+
     # Devolver el JSON como respuesta HTTP
     return json_data, 200
 
+################################################################################################################################################
 # URL de visualización de datos de archivo cargado
 @app.route('/verDataset', methods=['POST'])
 def view_dataset():
     #Recibe el nombre del archivo seleccionado
-    fileName = request.form['fileName']
-    print(fileName)
+    fileId = request.form['fileId']
 
-    #Leer el archivo CSV seleccionado
-    df = pd.read_csv(UPLOADED_FILES[fileName])
+    # Seleccionar el archivo de bbdd
+    db.execute(f"SELECT * FROM datafiles WHERE id = {fileId}")
+    file = db.fetchone()
+
+    # Leer el contenido del archivo de la columna blob de bbdd
+    df = pd.read_csv(io.BytesIO(file[4]))
 
     #Convertir el DataFrame a JSON
     json_data = df.to_json(orient='records')
@@ -150,21 +171,50 @@ def view_dataset():
     #Devolver el JSON como respuesta HTTP
     return json_data, 200
 
+################################################################################################################################################
 # URL de eliminación de archivo cargado
 @app.route('/eliminaArchivo', methods=['POST'])
 def eliminaArchivo():
-    # Obtener el nombre del archivo seleccionado
-    filename = request.form['fileName']
+    fileId  = request.form['fileId']
 
-    # Eliminar el archivo del diccionario
-    del UPLOADED_FILES[filename]
-
-    # Eliminar el archivo del sistema de archivos
-    os.remove(os.path.join(CSV_FOLDER, filename))
+    # Eliminar el archivo de la base de datos
+    db.execute(f"DELETE FROM datafiles WHERE id = {fileId}")
+    mydb.commit()
 
     # Devuelve un mensaje de éxito
     return 'Archivo eliminado correctamente', 200
 
+################################################################################################################################################
+# URL de visualizacion en la carga de archivo
+@app.route('/visualizar', methods=['POST'])
+def visualizar():
+    # Comprobar si se recibió un archivo en la solicitud
+    if 'file' not in request.files:
+        return 'No se recibió ningún archivo', 400
+    
+    file = request.files['file']
+    
+    # Comprobar si el archivo tiene el formato permitido
+    if file and allowed_file(file.filename):
+
+        # Por ejemplo, guardar el archivo en el sistema de archivos
+        file.save(os.path.join(CSV_FOLDER, secure_filename(file.filename)))
+
+        # Read the CSV file into a pandas DataFrame
+        df = pd.read_csv(os.path.join(CSV_FOLDER, secure_filename(file.filename)))
+
+        # Convert the DataFrame to JSON
+        json_data = df.to_json(orient='records')
+
+        # Eliminar el archivo del sistema de archivos
+        os.remove(os.path.join(CSV_FOLDER, secure_filename(file.filename)))
+        
+        return json_data, 200
+    else:
+        return '¡Formato de archivo no permitido!', 400
+
+
+################################################################################################################################################
 # URL de carga de archivos
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -176,37 +226,87 @@ def upload_file():
     
     # Comprobar si el archivo tiene el formato permitido
     if file and allowed_file(file.filename):
-        # Aquí puedes guardar el archivo o hacer lo que necesites con él
+
+        # Se comprueba si el nombre del archivo ya existe en la base de datos
+        db.execute(f"SELECT * FROM datafiles WHERE filename like '%{file.filename}%' AND id_usr = {USUARIO_LOGIN['id']} AND mime = 'text/csv'")
+        file_exists = db.fetchone()
+
+        if file_exists:
+            return 'Ya existe un archivo subido en su cuenta con ese nombre, por favor cámbielo y vuelva a intentarlo, así evitará futuras confusiones.', 400
         
         # Por ejemplo, guardar el archivo en el sistema de archivos
         file.save(os.path.join(CSV_FOLDER, secure_filename(file.filename)))
 
-        UPLOADED_FILES[file.filename] = os.path.join(CSV_FOLDER, secure_filename(file.filename))
+        # Obtención del tamaño del archivo en bytes
+        tamano = os.path.getsize(os.path.join(CSV_FOLDER, secure_filename(file.filename)))
+        
+        # Lectura del contenido del archivo CSV
+        with open(os.path.join(CSV_FOLDER, secure_filename(file.filename)), 'rb') as f:
+            file_data = f.read()
+        
+        # Obtención del tipo MIME del archivo CSV
+        mime = 'text/csv'  # Por ejemplo, el tipo MIME para archivos CSV
+
+        # Inserción de los datos del archivo en la base de datos
+        query = "INSERT INTO datafiles (filename, tamano, contenido, mime, id_usr) VALUES (%s, %s, %s, %s, %s)"
+        db.execute(query, (secure_filename(file.filename), tamano, file_data, mime, USUARIO_LOGIN['id']))
+        mydb.commit()
+
+        # Se comprueba si el nombre del archivo ya existe en la base de datos
+        db.execute(f"SELECT * FROM datafiles WHERE filename like '%{file.filename}%' AND id_usr = {USUARIO_LOGIN['id']} AND mime = 'text/csv'")
+        file_uploaded = db.fetchone()
+
+        UPLOADED_FILES[file_uploaded[0]] = file.filename
 
         # Read the CSV file into a pandas DataFrame
-        df = pd.read_csv(os.path.join(CSV_FOLDER, secure_filename(file.filename)))
+        df = pd.read_csv(os.path.join(CSV_FOLDER, UPLOADED_FILES[file_uploaded[0]]))
 
         # Convert the DataFrame to JSON
         json_data = df.to_json(orient='records')
+
+        # Vaciado del diccionario de archivos cargados
+        UPLOADED_FILES.clear()
+
+        # Borrar el archivo del sistema de archivos
+        os.remove(os.path.join(CSV_FOLDER, secure_filename(file.filename)))
         
         return json_data, 200
     else:
-        return 'Formato de archivo no permitido', 400
+        return '¡Formato de archivo no permitido!', 400
 
+################################################################################################################################################
 # URL de listado de archivos cargados
 @app.route('/files', methods=['GET'])
 def get_files():
-    options = list(UPLOADED_FILES.keys())
 
-    # Devuelve el JSON como respuesta HTTP
-    return {'options': options}, 200
+    # Obtener la lista de archivos en BBDD
+    db.execute(f"SELECT * FROM datafiles WHERE id_usr = {USUARIO_LOGIN['id']} and mime = 'text/csv'")
+    files = db.fetchall()
 
+    # crear json con los nombres y los ids de los archivos
+    upload_files = {}
+    fechas = {}
+    for file in files:
+        upload_files[file[0]] = file[1]
+        fechas[file[0]] = file[6]
+
+    # Combinar los diccionarios en uno solo
+    response_data = {
+        'fechas': fechas,
+        'upload_files': upload_files
+    }
+
+    # Devolver el JSON combinado como respuesta HTTP
+    return response_data, 200
+
+################################################################################################################################################
 # URL de obtención de gráficas generadas
 @app.route('/graficas', methods=['GET'])
 def get_graphics():
     # Devuelve el JSON como respuesta HTTP
     return GENERATED_GRAPHICS, 200
 
+################################################################################################################################################
 # URL de eliminación de gráfica generada
 @app.route('/eliminaGrafica', methods=['POST'])
 def eliminaGrafica():
@@ -222,6 +322,7 @@ def eliminaGrafica():
     # Devuelve un mensaje de éxito
     return 'Gráfica eliminada correctamente', 200
 
+################################################################################################################################################
 # URL de descarga de grafica generada
 @app.route('/descargaGrafica', methods=['POST'])
 def download_graphic():
@@ -231,51 +332,60 @@ def download_graphic():
     # Devolver el archivo como respuesta HTTP
     return send_file(os.path.join(GRAPHICS_FOLDER, filename), as_attachment=True)
 
+################################################################################################################################################
 # URL de generación de gráfica
 @app.route('/generaGrafica', methods=['POST'])
 def generaGrafica():
     # Obtener el nombre del archivo seleccionado
-    filename = request.form['fileName']
+    fileId = request.form['fileId']
     # Obtener el tipo de gráfica seleccionado
     tipoGrafica = request.form['tipoGrafica']
     # Obtener el título de la gráfica
-    titulo = request.form['titulo']
+    titulo = request.form['titulo'].upper()
     # Obtener la etiqueta del eje X
-    labelX = request.form['labelEjeX']
+    labelX = request.form['labelEjeX'].upper()
     # Obtener campo de X
     valueEjeX = request.form['valueEjeX']
     # Obtener la etiqueta del eje Y
-    labelY = request.form['labelEjeY']
+    labelY = request.form['labelEjeY'].upper()
     # Obtener campo de Y
     valueEjeY = request.form['valueEjeY']
     # Obtener HUE (variable categórica de agrupación)
     valueHue = request.form['valueHue']
+    # Obtener el estilo de la gráfica
+    estilo = request.form['estilo']
+    # Obtener el tema de la gráfica
+    tema = request.form['tema']
 
-    # leer el archivo CSV seleccionado
-    df = pd.read_csv(UPLOADED_FILES[filename])
+    # Seleccionar el archivo de bbdd
+    db.execute(f"SELECT * FROM datafiles WHERE id = {fileId}")
+    file = db.fetchone()
+
+    # Leer el contenido del archivo de la columna blob de bbdd
+    df = pd.read_csv(io.BytesIO(file[4]))
 
     #######Esto es omisible######
     #df.rename(columns={'Group': 'DEMENTIA'}, inplace=True)
     #df.rename(columns={'M/F': 'Sex'}, inplace=True)
-    df.drop(columns=['MRI ID', 'Subject ID'], inplace=True)
-
-    df.drop(columns=['Hand'], inplace=True)
-
-    df.SES.fillna(0, inplace=True)
-    df.MMSE.fillna(df.MMSE.mean(), inplace=True)
+    #df.drop(columns=['MRI ID', 'Subject ID'], inplace=True)
+    #df.drop(columns=['Hand'], inplace=True)
 
     custom_params = {"axes.spines.right": False, "axes.spines.top": False}
-    sns.set_theme(style="ticks", rc=custom_params, palette="bright")
+    sns.set_theme(style=estilo, rc=custom_params, palette=tema)
     plt.figure(figsize=(9, 7))
 
     if tipoGrafica == 'countplot':
         if valueEjeX and not valueEjeY:
+            if valueEjeX not in df.columns:
+                return 'El campo seleccionado para X no existe en el archivo.', 400
             if valueHue:
                 sns.countplot(data=df, x=valueEjeX, hue=valueHue)
             else:
                 sns.countplot(data=df, x=valueEjeX)
 
         elif valueEjeY and not valueEjeX:
+            if valueEjeY not in df.columns:
+                return 'El campo seleccionado para Y no existe en el archivo.', 400
             if valueHue:
                 sns.countplot(data=df, y=valueEjeY, hue=valueHue)
             else:
@@ -289,11 +399,15 @@ def generaGrafica():
     
     elif tipoGrafica == 'histplot':
         if valueEjeX and not valueEjeY:
+            if valueEjeX not in df.columns:
+                return 'El campo seleccionado para X no existe en el archivo.', 400
             if valueHue:
                 sns.histplot(data=df, x=valueEjeX, binwidth=5, kde=True, hue=valueHue)
             else:
                 sns.histplot(data=df, x=valueEjeX, binwidth=5, kde=True)
         elif valueEjeY and not valueEjeX:
+            if valueEjeY not in df.columns:
+                return 'El campo seleccionado para Y no existe en el archivo.', 400
             if valueHue:
                 sns.histplot(data=df, y=valueEjeY, binwidth=5, kde=True, hue=valueHue)
             else:
@@ -307,6 +421,8 @@ def generaGrafica():
 
     elif tipoGrafica == 'scatterplot':
         if valueEjeX and valueEjeY:
+            if valueEjeX not in df.columns or valueEjeY not in df.columns:
+                return 'Los campos seleccionados para X o Y no existen en el archivo.', 400
             if valueHue:
                 sns.scatterplot(data=df, x=valueEjeX, y=valueEjeY, hue=valueHue, alpha=0.7)
             else:
@@ -320,19 +436,30 @@ def generaGrafica():
             return 'Debe seleccionar un campo para el eje X y otro para el eje Y', 400
 
     elif tipoGrafica == 'heatmap':
-        df.drop(columns=['Group'], inplace=True)
-        df.drop(columns=['MRI ID', 'Subject ID'], inplace=True)
-        df.drop(columns=['M/F'], inplace=True)
-        df.drop(columns=['Hand'], inplace=True)
-        sns.heatmap(df.corr(), annot=True, fmt=".2f", linewidths=0.7, cbar=True, cmap='RdBu')
+        #df.drop(columns=['Group'], inplace=True)
+        #df.drop(columns=['MRI ID', 'Subject ID'], inplace=True)
+        #df.drop(columns=['M/F'], inplace=True)
+        #df.drop(columns=['Hand'], inplace=True)
+        # Seleccionar todas las columnas de tipo object (string)
+        string_columns = df.select_dtypes(include=['object']).columns
+        # Eliminar las columnas seleccionadas del DataFrame
+        df.drop(columns=string_columns, inplace=True)
+        
+        sns.heatmap(df.corr(), annot=True, fmt=".2f", linewidths=0.7, cbar=True, cmap=tema)
         plt.title(titulo, size = 20, weight='bold')
 
     elif tipoGrafica == 'boxplot':
         if valueEjeX and valueEjeY:
+            if valueEjeX not in df.columns or valueEjeY not in df.columns:
+                return 'Los campos seleccionados para X o Y no existen en el archivo.', 400
             sns.boxplot(data=df, x=valueEjeX, y=valueEjeY, showfliers=False)
         elif valueEjeX and not valueEjeY:
+            if valueEjeX not in df.columns:
+                return 'El campo seleccionado para X no existe en el archivo.', 400
             sns.boxplot(data=df, x=valueEjeX, showfliers=False)
         elif valueEjeY and not valueEjeX:
+            if valueEjeY not in df.columns:
+                return 'El campo seleccionado para Y no existe en el archivo.', 400
             sns.boxplot(data=df, y=valueEjeY, showfliers=False)
 
         plt.title(titulo, size = 20, weight='bold')
@@ -356,6 +483,7 @@ def generaGrafica():
 
         return 'Gráfica generada exitosamente', 200
 
+################################################################################################################################################
 # Añadimos al registro la función de eliminación de carpetas temporales
 atexit.register(cleanup_temp_folder)
 

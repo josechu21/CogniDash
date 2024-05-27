@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Navbar from "./NavBar";
 import Footer from "./Footer";
 import '../style/footer.css';
+import '../style/dashboard.css';
 import agregarLogo from '../images/agregar.png';
 
 function Dashboard() {
@@ -71,6 +72,11 @@ function Dashboard() {
             <div className="footer-container">
                 <Navbar/>
                 <h1>Dashboard</h1>
+                {Object.entries(graficas).length > 0 && (
+                    <div className='boton btn-container mb-3'>
+                        <button className="btn btn-warning btn-lg px-5" onClick={handleBtnGrafica} style={{width: '35%'}}><span><img src={agregarLogo} alt='logo' style={{width: '10%'}}/> Añadir gráfica</span></button>
+                    </div>
+                )}
                 <div className="graficas-container row">
                 {msg && (
                     <div className="msg">
@@ -85,8 +91,8 @@ function Dashboard() {
                 {Object.entries(graficas).map(([key, value]) => (
                     <div id={key} key={key} className="grafica col-6">
                         <img src={value} alt="grafica"/>
-                        <button className="btn btn-danger btn-lg px-5" value={key} onClick={handleBtnEliminar}>Eliminar</button>
-                        <button className="btn btn-success btn-lg px-5" value={key} onClick={handleBtnDescargar}>Descargar</button>
+                        <button className="btn btn-danger btn-lg px-3 boton-pad" value={key} onClick={handleBtnEliminar}>Eliminar</button>
+                        <button className="btn btn-success btn-lg px-3 boton-pad" value={key} onClick={handleBtnDescargar}>Descargar</button>
                     </div>
                 ))}
                 </div>
