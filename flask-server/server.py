@@ -3,6 +3,20 @@ from werkzeug.utils import secure_filename
 
 import os, shutil, atexit, json, io, warnings, pandas as pd, numpy as np, seaborn as sns, matplotlib.pyplot as plt, mysql.connector
 
+from sklearn.metrics import confusion_matrix, accuracy_score, roc_curve, roc_auc_score, auc, precision_recall_curve
+from sklearn.preprocessing import LabelEncoder, StandardScaler, label_binarize
+from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV, learning_curve, validation_curve
+from imblearn.over_sampling import SMOTE
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.multiclass import OneVsRestClassifier
+from itertools import cycle
+from joblib import dump, load
+import gc
+
+
 warnings.filterwarnings('ignore')
 
 ################################################
@@ -35,7 +49,8 @@ UPLOADED_FILES = {}
 UPLOADED_VALIDAR = {}
 
 # Diccionario para almacenar las gráficas generadas
-GENERATED_GRAPHICS = {}
+GENERATED_VIEW_GRAPHICS = {}
+GENERATED_RESULT_GRAPHICS = {}
 
 # Diccionario para almacenar el usuario logueado
 USUARIO_LOGIN = {}
@@ -119,7 +134,7 @@ def get_usuario():
 @app.route('/logout', methods=['GET'])
 def logout():
     USUARIO_LOGIN.clear()
-    GENERATED_GRAPHICS.clear()
+    GENERATED_VIEW_GRAPHICS.clear()
     return 'Logout exitoso', 200
 
 ################################################################################################################################################
@@ -301,20 +316,41 @@ def get_files():
 
 ################################################################################################################################################
 # URL de obtención de gráficas generadas
-@app.route('/graficas', methods=['GET'])
-def get_graphics():
+@app.route('/graficasVisualizar', methods=['GET'])
+def get_view_graphics():
     # Devuelve el JSON como respuesta HTTP
-    return GENERATED_GRAPHICS, 200
+    return GENERATED_VIEW_GRAPHICS, 200
+
+# URL de obtención de gráficas generadas
+@app.route('/graficasResultados', methods=['GET'])
+def get_result_graphics():
+    # Devuelve el JSON como respuesta HTTP
+    return GENERATED_RESULT_GRAPHICS, 200
 
 ################################################################################################################################################
 # URL de eliminación de gráfica generada
-@app.route('/eliminaGrafica', methods=['POST'])
+@app.route('/eliminaGraficaVisualizacion', methods=['POST'])
 def eliminaGrafica():
     # Obtener el nombre del archivo seleccionado
     filename = request.form['fileName']
 
     # Eliminar la gráfica del diccionario
-    del GENERATED_GRAPHICS[filename]
+    del GENERATED_VIEW_GRAPHICS[filename]
+
+    # Eliminar el archivo del sistema de archivos
+    os.remove(os.path.join(GRAPHICS_FOLDER, filename))
+
+    # Devuelve un mensaje de éxito
+    return 'Gráfica eliminada correctamente', 200
+
+# URL de eliminación de gráfica generada
+@app.route('/eliminaGraficaResultados', methods=['POST'])
+def eliminaGraficaResultados():
+    # Obtener el nombre del archivo seleccionado
+    filename = request.form['fileName']
+
+    # Eliminar la gráfica del diccionario
+    del GENERATED_RESULT_GRAPHICS[filename]
 
     # Eliminar el archivo del sistema de archivos
     os.remove(os.path.join(GRAPHICS_FOLDER, filename))
@@ -324,8 +360,17 @@ def eliminaGrafica():
 
 ################################################################################################################################################
 # URL de descarga de grafica generada
-@app.route('/descargaGrafica', methods=['POST'])
+@app.route('/descargaGraficaVisualizacion', methods=['POST'])
 def download_graphic():
+    # Obtener el nombre del archivo seleccionado
+    filename = request.form['fileName']
+
+    # Devolver el archivo como respuesta HTTP
+    return send_file(os.path.join(GRAPHICS_FOLDER, filename), as_attachment=True)
+
+# URL de descarga de grafica generada
+@app.route('/descargaGraficaResultados', methods=['POST'])
+def download_result_graphic():
     # Obtener el nombre del archivo seleccionado
     filename = request.form['fileName']
 
@@ -334,7 +379,7 @@ def download_graphic():
 
 ################################################################################################################################################
 # URL de generación de gráfica
-@app.route('/generaGrafica', methods=['POST'])
+@app.route('/generaGraficaVisualizacion', methods=['POST'])
 def generaGrafica():
     # Obtener el nombre del archivo seleccionado
     fileId = request.form['fileId']
@@ -363,12 +408,6 @@ def generaGrafica():
 
     # Leer el contenido del archivo de la columna blob de bbdd
     df = pd.read_csv(io.BytesIO(file[4]))
-
-    #######Esto es omisible######
-    #df.rename(columns={'Group': 'DEMENTIA'}, inplace=True)
-    #df.rename(columns={'M/F': 'Sex'}, inplace=True)
-    #df.drop(columns=['MRI ID', 'Subject ID'], inplace=True)
-    #df.drop(columns=['Hand'], inplace=True)
 
     custom_params = {"axes.spines.right": False, "axes.spines.top": False}
     sns.set_theme(style=estilo, rc=custom_params, palette=tema)
@@ -436,10 +475,6 @@ def generaGrafica():
             return 'Debe seleccionar un campo para el eje X y otro para el eje Y', 400
 
     elif tipoGrafica == 'heatmap':
-        #df.drop(columns=['Group'], inplace=True)
-        #df.drop(columns=['MRI ID', 'Subject ID'], inplace=True)
-        #df.drop(columns=['M/F'], inplace=True)
-        #df.drop(columns=['Hand'], inplace=True)
         # Seleccionar todas las columnas de tipo object (string)
         string_columns = df.select_dtypes(include=['object']).columns
         # Eliminar las columnas seleccionadas del DataFrame
@@ -472,16 +507,462 @@ def generaGrafica():
         return 'Tipo de gráfica no válido', 400
     else:
         # numero de elementos del array generated_graphics
-        num = len(GENERATED_GRAPHICS)
+        num = len(GENERATED_VIEW_GRAPHICS)
 
         #Guardar la gráfica en un archivo
         filename = f'{tipoGrafica}_{num+1}.png'
         filepath = os.path.join(GRAPHICS_FOLDER, filename)
         plt.savefig(filepath)
         plt.close()
-        GENERATED_GRAPHICS[filename] = os.path.join('graphics', filename)
+        GENERATED_VIEW_GRAPHICS[filename] = os.path.join('graphics', filename)
 
         return 'Gráfica generada exitosamente', 200
+    
+
+def generaModelo(fileId, modelName):
+
+    variables_modelo = {}
+
+    # Seleccionar el archivo de bbdd
+    db.execute(f"SELECT * FROM datafiles WHERE id = {fileId}")
+    file = db.fetchone()
+
+    # Leer el contenido del archivo de la columna blob de bbdd
+    df = pd.read_csv(io.BytesIO(file[4]))
+
+    # Eliminar las columnas que no se utilizarán en el modelo
+    df.drop(['Subject ID', 'MRI ID', 'Hand'], axis=1, inplace=True)
+
+    le = LabelEncoder()
+    df['M/F'] = le.fit_transform ( df['M/F'].values )
+    print ( 'Sex:\n0 : %s \n1 : %s\n\n' %(le.classes_[0], le.classes_[1]) )
+    df.Group = le.fit_transform ( df.Group.values )
+    print ( 'Dementia:\n0 : %s \n1 : %s \n2 : %s' %(le.classes_[0], le.classes_[1], le.classes_[2]) )
+    df.Group = df.Group.astype('category')
+    df['M/F'] = df['M/F'].astype('category')
+    X, y = df.drop ('Group', axis=1).values , df.Group.values
+    X_train, X_test, y_train, y_test = train_test_split ( X, y, test_size = 0.2, random_state = 1, stratify = y)
+    print ('Number of observations in the target variable before oversampling of the minority class:', np.bincount (y_train) )
+    smt = SMOTE()
+    X_train, y_train = smt.fit_resample (X_train, y_train)
+    print ('\nNumber of observations in the target variable after oversampling of the minority class:', np.bincount (y_train) )
+    std_scaler = StandardScaler()
+    X_train_std = std_scaler.fit_transform ( X_train )
+    X_test_std = std_scaler.transform ( X_test )
+
+    if modelName == 'logisticregression':
+        lr = LogisticRegression(random_state=42)
+        param_grid = {
+            'C': [0.1, 1, 10],
+            'solver': ['liblinear', 'lbfgs']
+        }
+        gs = GridSearchCV(estimator=lr,
+                      param_grid=param_grid,
+                      scoring='accuracy',
+                      cv=5,
+                      refit=True,
+                      n_jobs=-1)
+        gs = gs.fit(X_train_std, y_train)
+
+        variables_modelo = {
+            'df': df,
+            'X_train_std': X_train_std,
+            'y_train': y_train,
+            'X_test_std': X_test_std,
+            'y_test': y_test,
+            'gs.best_params_': gs.best_params_,
+            'gs.best_score_': gs.best_score_,
+            'gs.best_estimator_': gs.best_estimator_,
+            'gs': gs
+        }
+
+    elif modelName == 'svm':
+        svc = SVC(random_state=42, probability=True)  # `probability=True` is needed for `predict_proba`
+        param_grid = { 
+            'C': [0.1, 1, 10],
+            'kernel': ['linear', 'rbf']
+        }
+        gs = GridSearchCV(estimator=svc,
+                      param_grid=param_grid,
+                      scoring='accuracy',
+                      cv=5,
+                      refit=True,
+                      n_jobs=-1)
+
+        gs = gs.fit(X_train_std, y_train)
+
+        variables_modelo = {
+            'df': df,
+            'X_train_std': X_train_std,
+            'y_train': y_train,
+            'X_test_std': X_test_std,
+            'y_test': y_test,
+            'gs.best_params_': gs.best_params_,
+            'gs.best_score_': gs.best_score_,
+            'gs.best_estimator_': gs.best_estimator_,
+            'gs': gs
+        }
+
+    elif modelName == 'randomforest':
+        rfc = RandomForestClassifier(n_jobs=-1, random_state=42) 
+
+        param_grid = { 
+            'n_estimators': [500, 700, 900],
+            'min_samples_split': [2,4,6,8,10]
+        }
+
+        gs = GridSearchCV ( estimator = rfc,
+                       param_grid = param_grid,
+                       scoring = 'accuracy',
+                       cv = 5,
+                       refit = True,
+                       n_jobs = -1
+                       )
+
+        gs = gs.fit ( X_train_std, y_train )
+
+        variables_modelo = {
+            'df': df,
+            'X_train_std': X_train_std,
+            'y_train': y_train,
+            'X_test_std': X_test_std,
+            'y_test': y_test,
+            'gs.best_params_': gs.best_params_,
+            'gs.best_score_': gs.best_score_,
+            'gs.best_estimator_': gs.best_estimator_,
+            'gs': gs
+        }
+
+        del gs
+        gc.collect()
+
+        #dump(gs, os.path.join(CSV_FOLDER, modelName + '.joblib'))
+
+    return variables_modelo
+
+def loadModelo(fileId, fileName):
+    variables_modelo = {}
+
+    # Seleccionar el archivo de bbdd
+    db.execute(f"SELECT * FROM datafiles WHERE id = {fileId}")
+    file = db.fetchone()
+
+    # Leer el contenido del archivo de la columna blob de bbdd
+    df = pd.read_csv(io.BytesIO(file[4]))
+
+    # Eliminar las columnas que no se utilizarán en el modelo
+    df.drop(['Subject ID', 'MRI ID', 'Hand'], axis=1, inplace=True)
+
+    le = LabelEncoder()
+    df['M/F'] = le.fit_transform ( df['M/F'].values )
+    print ( 'Sex:\n0 : %s \n1 : %s\n\n' %(le.classes_[0], le.classes_[1]) )
+    df.Group = le.fit_transform ( df.Group.values )
+    print ( 'Dementia:\n0 : %s \n1 : %s \n2 : %s' %(le.classes_[0], le.classes_[1], le.classes_[2]) )
+    df.Group = df.Group.astype('category')
+    df['M/F'] = df['M/F'].astype('category')
+    X, y = df.drop ('Group', axis=1).values , df.Group.values
+    X_train, X_test, y_train, y_test = train_test_split ( X, y, test_size = 0.2, random_state = 1, stratify = y)
+    print ('Number of observations in the target variable before oversampling of the minority class:', np.bincount (y_train) )
+    smt = SMOTE()
+    X_train, y_train = smt.fit_resample (X_train, y_train)
+    print ('\nNumber of observations in the target variable after oversampling of the minority class:', np.bincount (y_train) )
+    std_scaler = StandardScaler()
+    X_train_std = std_scaler.fit_transform ( X_train )
+    X_test_std = std_scaler.transform ( X_test )
+
+    gs = load(os.path.join(CSV_FOLDER, fileName))
+
+    gs = gs.fit ( X_train_std, y_train )
+
+    variables_modelo = {
+        'df': df,
+        'X_train_std': X_train_std,
+        'y_train': y_train,
+        'X_test_std': X_test_std,
+        'y_test': y_test,
+        'gs.best_params_': gs.best_params_,
+        'gs.best_score_': gs.best_score_,
+        'gs.best_estimator_': gs.best_estimator_,
+        'gs': gs
+    }
+
+    del gs
+    gc.collect()
+
+    return variables_modelo
+
+
+# URL de generación de gráfica
+@app.route('/generaGraficaResultados', methods=['POST'])
+def generaGraficaResultados():
+    # Obtener el nombre del archivo seleccionado
+    fileId = request.form['fileId']
+    # Obtener el tipo de gráfica seleccionado
+    tipoGrafica = request.form['tipoGrafica']
+    # Obtener el título de la gráfica
+    titulo = request.form['titulo'].upper()
+    # Obtener la etiqueta del eje X
+    labelX = request.form['labelEjeX'].upper()
+    # Obtener la etiqueta del eje Y
+    labelY = request.form['labelEjeY'].upper()
+    # Obtener el estilo de la gráfica
+    estilo = request.form['estilo']
+    # Obtener el tema de la gráfica
+    tema = request.form['tema']
+    # Obtener el nombre del modelo
+    modelName = request.form['modelName']
+
+    # Comprobar si se recibió un archivo en la solicitud
+    hayArchivo = request.form['hayArchivo']
+
+    if(hayArchivo == 'true'):
+        file = request.files['file']
+        if file:
+            file.save(os.path.join(CSV_FOLDER, secure_filename(file.filename)))
+            model=loadModelo(fileId, file.filename)
+    else:
+        model = generaModelo(fileId, modelName)
+
+    custom_params = {"axes.spines.right": False, "axes.spines.top": False}
+    sns.set_theme(style=estilo, rc=custom_params, palette=tema)
+
+    if(tipoGrafica == 'curvaroc'):
+        print('Parameter setting that gave the best results on the hold out data:', model.get('gs.best_params_'))
+        print('Mean cross-validated score of the best_estimator: %.3f' % model.get('gs.best_score_'))
+
+        gs = model.get('gs').best_estimator_
+
+        gs.fit(model.get('X_train_std'), model.get('y_train'))
+        y_pred = gs.predict(model.get('X_test_std'))
+        print(f'Accuracy train score: %.4f' % gs.score(model.get('X_train_std'), model.get('y_train')))
+        print(f'Accuracy test score: %.4f' % accuracy_score(model.get('y_test'), y_pred))
+
+        # Convertir las etiquetas en formato binarizado para la estrategia One-vs-Rest
+        y_test_bin = label_binarize(model.get('y_test'), classes=np.unique(model.get('y_test')))
+        y_prob_bin = gs.predict_proba(model.get('X_test_std'))
+
+        # Graficar las curvas ROC para cada clase
+        fpr = dict()
+        tpr = dict()
+        roc_auc = dict()
+        for i in range(len(np.unique(model.get('y_test')))):
+            fpr[i], tpr[i], _ = roc_curve(y_test_bin[:, i], y_prob_bin[:, i])
+            roc_auc[i] = auc(fpr[i], tpr[i])
+
+        # Graficar todas las curvas ROC
+        plt.figure(figsize=(8.5, 6))
+        colors = cycle(['aqua', 'darkorange', 'cornflowerblue'])
+        for i, color in zip(range(len(np.unique(model.get('y_test')))), colors):
+            plt.plot(fpr[i], tpr[i], color=color, lw=2,
+                     label=f'ROC curve of class {i} (area = {roc_auc[i]:.2f})')
+
+        plt.plot([0, 1], [0, 1], 'k--', lw=2)
+        if labelX:
+            plt.xlabel(labelX)
+        else:
+            plt.xlabel('False Positive Rate')
+        if labelY:
+            plt.ylabel(labelY)
+        else:
+            plt.ylabel('True Positive Rate')
+        
+        if titulo:
+            plt.title(titulo, size = 20, weight='bold')
+        else:
+            plt.title('Receiver Operating Characteristic (ROC) Curve - One-vs-Rest', size = 20, weight='bold')
+            
+        plt.legend(loc="lower right")
+
+        # Guardar la gráfica en un archivo
+        num = len(GENERATED_RESULT_GRAPHICS)
+        filename = f'result_{num+1}.png'
+        filepath = os.path.join(GRAPHICS_FOLDER, filename)
+        plt.savefig(filepath)
+        plt.close()
+        GENERATED_RESULT_GRAPHICS[filename] = os.path.join('graphics', filename)
+    elif (tipoGrafica == 'matrizconfusion'):
+        gs = model.get('gs').best_estimator_
+
+        gs.fit(model.get('X_train_std'), model.get('y_train'))
+        y_pred = gs.predict(model.get('X_test_std'))
+        print(f'Accuracy train score: %.4f' % gs.score(model.get('X_train_std'), model.get('y_train')))
+        print(f'Accuracy test score: %.4f' % accuracy_score(model.get('y_test'), y_pred))
+
+        # Calcular la matriz de confusión
+        cm = confusion_matrix(model.get('y_test'), y_pred)
+
+        # Graficar la matriz de confusión
+        #modificar tamaño de la grafica
+        plt.figure(figsize=(8.5, 6))
+        sns.heatmap(cm, annot=True, fmt='d', cmap=tema)
+        if titulo:
+            plt.title(titulo, size = 20, weight='bold')
+        else:
+            plt.title('Matriz de confusión', size = 20, weight='bold')
+
+        if labelX:
+            plt.xlabel(labelX)
+        else:
+            plt.xlabel('Predicted labels')
+            
+        if labelY:
+            plt.ylabel(labelY)
+        else:
+            plt.ylabel('True labels')
+
+        # Guardar la gráfica en un archivo
+        num = len(GENERATED_RESULT_GRAPHICS)
+        filename = f'result_{num+1}.png'
+        filepath = os.path.join(GRAPHICS_FOLDER, filename)
+        plt.savefig(filepath)
+        plt.close()
+        GENERATED_RESULT_GRAPHICS[filename] = os.path.join('graphics', filename)
+    elif (tipoGrafica == 'curvapr'):
+        gs = model.get('gs').best_estimator_
+
+        gs.fit(model.get('X_train_std'), model.get('y_train'))
+        y_pred = gs.predict(model.get('X_test_std'))
+        print(f'Accuracy train score: %.4f' % gs.score(model.get('X_train_std'), model.get('y_train')))
+        print(f'Accuracy test score: %.4f' % accuracy_score(model.get('y_test'), y_pred))
+
+        # Convertir las etiquetas en formato binarizado para la estrategia One-vs-Rest
+        y_test_bin = label_binarize(model.get('y_test'), classes=np.unique(model.get('y_test')))
+        y_prob_bin = gs.predict_proba(model.get('X_test_std'))
+
+        # Graficar las curvas PR para cada clase
+        precision = dict()
+        recall = dict()
+        pr_auc = dict()
+        for i in range(len(np.unique(model.get('y_test')))):
+            precision[i], recall[i], _ = precision_recall_curve(y_test_bin[:, i], y_prob_bin[:, i])
+            pr_auc[i] = auc(recall[i], precision[i])
+
+        # Graficar todas las curvas PR
+        plt.figure(figsize=(8.5, 6))
+        colors = cycle(['aqua', 'darkorange', 'cornflowerblue'])
+        for i, color in zip(range(len(np.unique(model.get('y_test')))), colors):
+            plt.plot(recall[i], precision[i], color=color, lw=2,
+                     label=f'PR curve of class {i} (area = {pr_auc[i]:.2f})')
+
+        if labelX:
+            plt.xlabel(labelX)
+        else:
+            plt.xlabel('Recall')
+
+        if labelY:
+            plt.ylabel(labelY)
+        else:
+            plt.ylabel('Precisión')
+            
+        if titulo:
+            plt.title(titulo, size = 20, weight='bold')
+        else:
+            plt.title('Precision-Recall Curve - One-vs-Rest', size = 20, weight='bold')
+        plt.legend(loc="lower right")
+
+        # Guardar la gráfica en un archivo
+        num = len(GENERATED_RESULT_GRAPHICS)
+        filename = f'result_{num+1}.png'
+        filepath = os.path.join(GRAPHICS_FOLDER, filename)
+        plt.savefig(filepath)
+        plt.close()
+        GENERATED_RESULT_GRAPHICS[filename] = os.path.join('graphics', filename)
+    elif (tipoGrafica == 'curvaaprendizaje'):
+        gs = model.get('gs').best_estimator_
+
+        gs.fit(model.get('X_train_std'), model.get('y_train'))
+        y_pred = gs.predict(model.get('X_test_std'))
+        print(f'Accuracy train score: %.4f' % gs.score(model.get('X_train_std'), model.get('y_train')))
+        print(f'Accuracy test score: %.4f' % accuracy_score(model.get('y_test'), y_pred))
+
+        # Graficar la curva de aprendizaje
+        train_sizes, train_scores, test_scores = learning_curve(gs, model.get('X_train_std'), model.get('y_train'), cv=5, n_jobs=-1)
+
+        train_scores_mean = np.mean(train_scores, axis=1)
+        train_scores_std = np.std(train_scores, axis=1)
+        test_scores_mean = np.mean(test_scores, axis=1)
+        test_scores_std = np.std(test_scores, axis=1)
+
+        plt.figure(figsize=(8.5, 6))
+        plt.fill_between(train_sizes, train_scores_mean - train_scores_std,
+                         train_scores_mean + train_scores_std, alpha=0.1, color="r")
+        plt.fill_between(train_sizes, test_scores_mean - test_scores_std,
+                         test_scores_mean + test_scores_std, alpha=0.1, color="g")
+        plt.plot(train_sizes, train_scores_mean, 'o-', color="r", label="Training score")
+        plt.plot(train_sizes, test_scores_mean, 'o-', color="g", label="Cross-validation score")
+
+        if labelX:
+            plt.xlabel(labelX)
+        else:
+            plt.xlabel("Training examples")
+        
+        if labelY:
+            plt.ylabel(labelY)
+        else:
+            plt.ylabel("Score")
+        if titulo:
+            plt.title(titulo, size = 20, weight='bold')
+        else:
+            plt.title("Learning Curve", size = 20, weight='bold')
+        plt.legend(loc="best")
+
+        # Guardar la gráfica en un archivo
+        num = len(GENERATED_RESULT_GRAPHICS)
+        filename = f'result_{num+1}.png'
+        filepath = os.path.join(GRAPHICS_FOLDER, filename)
+        plt.savefig(filepath)
+        plt.close()
+        GENERATED_RESULT_GRAPHICS[filename] = os.path.join('graphics', filename)
+    elif (tipoGrafica == 'curvavalidacion'):
+        gs = model.get('gs').best_estimator_
+
+        gs.fit(model.get('X_train_std'), model.get('y_train'))
+        y_pred = gs.predict(model.get('X_test_std'))
+        print(f'Accuracy train score: %.4f' % gs.score(model.get('X_train_std'), model.get('y_train')))
+        print(f'Accuracy test score: %.4f' % accuracy_score(model.get('y_test'), y_pred))
+
+        # Graficar la curva de validación
+        param_range = [0.1, 1, 10]
+        train_scores, test_scores = validation_curve(gs, model.get('X_train_std'), model.get('y_train'), param_name='C', param_range=param_range, cv=5)
+
+        train_scores_mean = np.mean(train_scores, axis=1)
+        train_scores_std = np.std(train_scores, axis=1)
+        test_scores_mean = np.mean(test_scores, axis=1)
+        test_scores_std = np.std(test_scores, axis=1)
+
+        plt.figure(figsize=(8.5, 6))
+        plt.fill_between(param_range, train_scores_mean - train_scores_std,
+                         train_scores_mean + train_scores_std, alpha=0.1, color="r")
+        plt.fill_between(param_range, test_scores_mean - test_scores_std,
+                         test_scores_mean + test_scores_std, alpha=0.1, color="g")
+        plt.plot(param_range, train_scores_mean, 'o-', color="r", label="Training score")
+        plt.plot(param_range, test_scores_mean, 'o-', color="g", label="Cross-validation score")
+
+        if labelX:
+            plt.xlabel(labelX)
+        else:
+            plt.xlabel("Parameter C")
+
+        if labelY:
+            plt.ylabel(labelY)
+        else:
+            plt.ylabel("Score")
+
+        if titulo:
+            plt.title(titulo, size = 20, weight='bold')
+        else:
+            plt.title("Validation Curve", size = 20, weight='bold')
+        plt.legend(loc="best")
+
+        # Guardar la gráfica en un archivo
+        num = len(GENERATED_RESULT_GRAPHICS)
+        filename = f'result_{num+1}.png'
+        filepath = os.path.join(GRAPHICS_FOLDER, filename)
+        plt.savefig(filepath)
+        plt.close()
+        GENERATED_RESULT_GRAPHICS[filename] = os.path.join('graphics', filename)
+
+    return 'Gráfica generada exitosamente', 200
 
 ################################################################################################################################################
 # Añadimos al registro la función de eliminación de carpetas temporales

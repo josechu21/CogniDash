@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "./NavBar";
 import Footer from "./Footer";
-import uploadLogo from '../images/upload.png';
 
 
 
@@ -21,9 +20,9 @@ function MisDatasets() {
             .then(response => {
                 if (response.ok) {
                     response.json().then(data => {
-                        setFechas(data.fechas);
-                        setOptions(data.upload_files);
-                        if (data.upload_files.length !== 0) {
+                        if (Object.keys(data.upload_files).length !== 0) {
+                            setFechas(data.fechas);
+                            setOptions(data.upload_files);
                             setHayDatos(true);
                         }
                     })
