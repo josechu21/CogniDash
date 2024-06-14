@@ -5,20 +5,11 @@ import Sidebar from './Sidebar'; // Importa el componente SideMenu
 
 function Navbar() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [isMenuOpen, setIsMenuOpen] = useState(false); // Estado para controlar la visibilidad del menú lateral
-
-  // Función para alternar la visibilidad del menú lateral
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
 
   return (
     <div>
       <nav className="navbar navbar-expand-lg navbar-light fondo">
         <div className="container">
-          <button className="navbar-toggler" type="button" onClick={toggleMenu}>
-            <span className="navbar-toggler-icon"></span>
-          </button>
           <div className="collapse navbar-collapse" id="navbarNav">
             <ul className="navbar-nav mx-auto">
               <li className="nav-item">
@@ -34,7 +25,7 @@ function Navbar() {
           </div>
         </div>
       </nav>
-      <Sidebar isOpen={isMenuOpen} /> {/* Renderiza el menú lateral y pasa el estado de visibilidad como prop */}
+      <Sidebar/>
     </div>
   );
 }

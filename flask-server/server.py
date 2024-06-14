@@ -1,5 +1,8 @@
 from flask import Flask, request, send_file
 from werkzeug.utils import secure_filename
+import matplotlib
+
+matplotlib.use('Agg')
 
 import os, shutil, atexit, json, io, warnings, pandas as pd, numpy as np, seaborn as sns, matplotlib.pyplot as plt, mysql.connector
 
@@ -14,7 +17,6 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.multiclass import OneVsRestClassifier
 from itertools import cycle
 from joblib import dump, load
-import gc
 
 
 warnings.filterwarnings('ignore')
@@ -54,6 +56,9 @@ GENERATED_RESULT_GRAPHICS = {}
 
 # Diccionario para almacenar el usuario logueado
 USUARIO_LOGIN = {}
+
+# Almacena los mapeos de las variables categóricas
+category_mappings = {}
 
 # Directorios temporales para almacenar los archivos cargados y las gráficas generadas
 parent_directory = os.path.dirname(os.getcwd())
@@ -519,7 +524,7 @@ def generaGrafica():
         return 'Gráfica generada exitosamente', 200
     
 
-def generaModelo(fileId, modelName):
+def generaModelo(fileId, modelName, varEliminar):
 
     variables_modelo = {}
 
@@ -530,16 +535,34 @@ def generaModelo(fileId, modelName):
     # Leer el contenido del archivo de la columna blob de bbdd
     df = pd.read_csv(io.BytesIO(file[4]))
 
-    # Eliminar las columnas que no se utilizarán en el modelo
-    df.drop(['Subject ID', 'MRI ID', 'Hand'], axis=1, inplace=True)
+    if(varEliminar != ''):
+        varEliminar = varEliminar.split(',')
+        df.drop(varEliminar, axis=1, inplace=True)
+    else:
+        # Eliminar las columnas que no se utilizarán en el modelo
+        df.drop(['Subject ID', 'MRI ID', 'Hand'], axis=1, inplace=True)
+
+
+
+    # Identificación de las columnas categóricas
+    cat_columns = df.select_dtypes(include=['object']).columns
 
     le = LabelEncoder()
-    df['M/F'] = le.fit_transform ( df['M/F'].values )
-    print ( 'Sex:\n0 : %s \n1 : %s\n\n' %(le.classes_[0], le.classes_[1]) )
-    df.Group = le.fit_transform ( df.Group.values )
-    print ( 'Dementia:\n0 : %s \n1 : %s \n2 : %s' %(le.classes_[0], le.classes_[1], le.classes_[2]) )
-    df.Group = df.Group.astype('category')
-    df['M/F'] = df['M/F'].astype('category')
+
+    for col in cat_columns:
+        df[col] = le.fit_transform(df[col].values)
+        category_mappings[col] = dict(enumerate(le.classes_))
+        print(f'{col}:\n' + '\n'.join(f'{i} : {val}' for i, val in enumerate(le.classes_)))
+        df[col] = df[col].astype('category')
+
+    #df['M/F'] = le.fit_transform ( df['M/F'].values )
+    #print ( 'Sex:\n0 : %s \n1 : %s\n\n' %(le.classes_[0], le.classes_[1]) )
+
+    #df.Group = le.fit_transform ( df.Group.values )
+    #print ( 'Dementia:\n0 : %s \n1 : %s \n2 : %s' %(le.classes_[0], le.classes_[1], le.classes_[2]) )
+    #df.Group = df.Group.astype('category')
+    #df['M/F'] = df['M/F'].astype('category')
+
     X, y = df.drop ('Group', axis=1).values , df.Group.values
     X_train, X_test, y_train, y_test = train_test_split ( X, y, test_size = 0.2, random_state = 1, stratify = y)
     print ('Number of observations in the target variable before oversampling of the minority class:', np.bincount (y_train) )
@@ -633,14 +656,13 @@ def generaModelo(fileId, modelName):
             'gs': gs
         }
 
-        del gs
-        gc.collect()
+        
 
         #dump(gs, os.path.join(CSV_FOLDER, modelName + '.joblib'))
 
     return variables_modelo
 
-def loadModelo(fileId, fileName):
+def loadModelo(fileId, fileName, varEliminar):
     variables_modelo = {}
 
     # Seleccionar el archivo de bbdd
@@ -650,16 +672,31 @@ def loadModelo(fileId, fileName):
     # Leer el contenido del archivo de la columna blob de bbdd
     df = pd.read_csv(io.BytesIO(file[4]))
 
+    varEliminar = varEliminar.split(',')
+    df.drop(varEliminar, axis=1, inplace=True)
+
     # Eliminar las columnas que no se utilizarán en el modelo
-    df.drop(['Subject ID', 'MRI ID', 'Hand'], axis=1, inplace=True)
+    #df.drop(['Subject ID', 'MRI ID', 'Hand'], axis=1, inplace=True)
+
+    # Identificación de las columnas categóricas
+    cat_columns = df.select_dtypes(include=['object']).columns
 
     le = LabelEncoder()
-    df['M/F'] = le.fit_transform ( df['M/F'].values )
-    print ( 'Sex:\n0 : %s \n1 : %s\n\n' %(le.classes_[0], le.classes_[1]) )
-    df.Group = le.fit_transform ( df.Group.values )
-    print ( 'Dementia:\n0 : %s \n1 : %s \n2 : %s' %(le.classes_[0], le.classes_[1], le.classes_[2]) )
-    df.Group = df.Group.astype('category')
-    df['M/F'] = df['M/F'].astype('category')
+
+    for col in cat_columns:
+        category_mappings[col] = dict(enumerate(le.classes_))
+        df[col] = le.fit_transform(df[col].values)
+        print(f'{col}:\n' + '\n'.join(f'{i} : {val}' for i, val in enumerate(le.classes_)))
+        df[col] = df[col].astype('category')
+
+    #df['M/F'] = le.fit_transform ( df['M/F'].values )
+    #print ( 'Sex:\n0 : %s \n1 : %s\n\n' %(le.classes_[0], le.classes_[1]) )
+
+    #df.Group = le.fit_transform ( df.Group.values )
+    #print ( 'Dementia:\n0 : %s \n1 : %s \n2 : %s' %(le.classes_[0], le.classes_[1], le.classes_[2]) )
+    #df.Group = df.Group.astype('category')
+    #df['M/F'] = df['M/F'].astype('category')
+
     X, y = df.drop ('Group', axis=1).values , df.Group.values
     X_train, X_test, y_train, y_test = train_test_split ( X, y, test_size = 0.2, random_state = 1, stratify = y)
     print ('Number of observations in the target variable before oversampling of the minority class:', np.bincount (y_train) )
@@ -686,8 +723,6 @@ def loadModelo(fileId, fileName):
         'gs': gs
     }
 
-    del gs
-    gc.collect()
 
     return variables_modelo
 
@@ -711,6 +746,8 @@ def generaGraficaResultados():
     tema = request.form['tema']
     # Obtener el nombre del modelo
     modelName = request.form['modelName']
+    #Obtener variables que se eliminaran
+    varEliminar = request.form['varEliminar']
 
     # Comprobar si se recibió un archivo en la solicitud
     hayArchivo = request.form['hayArchivo']
@@ -719,24 +756,24 @@ def generaGraficaResultados():
         file = request.files['file']
         if file:
             file.save(os.path.join(CSV_FOLDER, secure_filename(file.filename)))
-            model=loadModelo(fileId, file.filename)
+            model=loadModelo(fileId, file.filename, varEliminar)
     else:
-        model = generaModelo(fileId, modelName)
+        model = generaModelo(fileId, modelName, varEliminar)
 
     custom_params = {"axes.spines.right": False, "axes.spines.top": False}
     sns.set_theme(style=estilo, rc=custom_params, palette=tema)
 
+    print('Parameter setting that gave the best results on the hold out data:', model.get('gs.best_params_'))
+    print('Mean cross-validated score of the best_estimator: %.3f' % model.get('gs.best_score_'))
+
+    gs = model.get('gs').best_estimator_
+
+    gs.fit(model.get('X_train_std'), model.get('y_train'))
+    y_pred = gs.predict(model.get('X_test_std'))
+    print(f'Accuracy train score: %.4f' % gs.score(model.get('X_train_std'), model.get('y_train')))
+    print(f'Accuracy test score: %.4f' % accuracy_score(model.get('y_test'), y_pred))
+
     if(tipoGrafica == 'curvaroc'):
-        print('Parameter setting that gave the best results on the hold out data:', model.get('gs.best_params_'))
-        print('Mean cross-validated score of the best_estimator: %.3f' % model.get('gs.best_score_'))
-
-        gs = model.get('gs').best_estimator_
-
-        gs.fit(model.get('X_train_std'), model.get('y_train'))
-        y_pred = gs.predict(model.get('X_test_std'))
-        print(f'Accuracy train score: %.4f' % gs.score(model.get('X_train_std'), model.get('y_train')))
-        print(f'Accuracy test score: %.4f' % accuracy_score(model.get('y_test'), y_pred))
-
         # Convertir las etiquetas en formato binarizado para la estrategia One-vs-Rest
         y_test_bin = label_binarize(model.get('y_test'), classes=np.unique(model.get('y_test')))
         y_prob_bin = gs.predict_proba(model.get('X_test_std'))
@@ -749,12 +786,17 @@ def generaGraficaResultados():
             fpr[i], tpr[i], _ = roc_curve(y_test_bin[:, i], y_prob_bin[:, i])
             roc_auc[i] = auc(fpr[i], tpr[i])
 
+        # Obtener las etiquetas originales de las clases
+        class_labels = category_mappings['Group']
+
         # Graficar todas las curvas ROC
-        plt.figure(figsize=(8.5, 6))
+        plt.figure(figsize=(9, 6))
         colors = cycle(['aqua', 'darkorange', 'cornflowerblue'])
-        for i, color in zip(range(len(np.unique(model.get('y_test')))), colors):
-            plt.plot(fpr[i], tpr[i], color=color, lw=2,
-                     label=f'ROC curve of class {i} (area = {roc_auc[i]:.2f})')
+        for class_index, color in zip(range(len(class_labels)), colors):
+            # Obtener el nombre de la clase a partir de las etiquetas originales
+            class_name = class_labels[class_index]
+            plt.plot(fpr[class_index], tpr[class_index], color=color, lw=2,
+                label=f'ROC curve of class {class_name} (area = {roc_auc[class_index]:.2f})')
 
         plt.plot([0, 1], [0, 1], 'k--', lw=2)
         if labelX:
@@ -780,20 +822,14 @@ def generaGraficaResultados():
         plt.savefig(filepath)
         plt.close()
         GENERATED_RESULT_GRAPHICS[filename] = os.path.join('graphics', filename)
+
     elif (tipoGrafica == 'matrizconfusion'):
-        gs = model.get('gs').best_estimator_
-
-        gs.fit(model.get('X_train_std'), model.get('y_train'))
-        y_pred = gs.predict(model.get('X_test_std'))
-        print(f'Accuracy train score: %.4f' % gs.score(model.get('X_train_std'), model.get('y_train')))
-        print(f'Accuracy test score: %.4f' % accuracy_score(model.get('y_test'), y_pred))
-
         # Calcular la matriz de confusión
         cm = confusion_matrix(model.get('y_test'), y_pred)
 
         # Graficar la matriz de confusión
         #modificar tamaño de la grafica
-        plt.figure(figsize=(8.5, 6))
+        plt.figure(figsize=(9, 6))
         sns.heatmap(cm, annot=True, fmt='d', cmap=tema)
         if titulo:
             plt.title(titulo, size = 20, weight='bold')
@@ -817,14 +853,8 @@ def generaGraficaResultados():
         plt.savefig(filepath)
         plt.close()
         GENERATED_RESULT_GRAPHICS[filename] = os.path.join('graphics', filename)
+
     elif (tipoGrafica == 'curvapr'):
-        gs = model.get('gs').best_estimator_
-
-        gs.fit(model.get('X_train_std'), model.get('y_train'))
-        y_pred = gs.predict(model.get('X_test_std'))
-        print(f'Accuracy train score: %.4f' % gs.score(model.get('X_train_std'), model.get('y_train')))
-        print(f'Accuracy test score: %.4f' % accuracy_score(model.get('y_test'), y_pred))
-
         # Convertir las etiquetas en formato binarizado para la estrategia One-vs-Rest
         y_test_bin = label_binarize(model.get('y_test'), classes=np.unique(model.get('y_test')))
         y_prob_bin = gs.predict_proba(model.get('X_test_std'))
@@ -838,7 +868,7 @@ def generaGraficaResultados():
             pr_auc[i] = auc(recall[i], precision[i])
 
         # Graficar todas las curvas PR
-        plt.figure(figsize=(8.5, 6))
+        plt.figure(figsize=(9, 6))
         colors = cycle(['aqua', 'darkorange', 'cornflowerblue'])
         for i, color in zip(range(len(np.unique(model.get('y_test')))), colors):
             plt.plot(recall[i], precision[i], color=color, lw=2,
@@ -867,14 +897,8 @@ def generaGraficaResultados():
         plt.savefig(filepath)
         plt.close()
         GENERATED_RESULT_GRAPHICS[filename] = os.path.join('graphics', filename)
+
     elif (tipoGrafica == 'curvaaprendizaje'):
-        gs = model.get('gs').best_estimator_
-
-        gs.fit(model.get('X_train_std'), model.get('y_train'))
-        y_pred = gs.predict(model.get('X_test_std'))
-        print(f'Accuracy train score: %.4f' % gs.score(model.get('X_train_std'), model.get('y_train')))
-        print(f'Accuracy test score: %.4f' % accuracy_score(model.get('y_test'), y_pred))
-
         # Graficar la curva de aprendizaje
         train_sizes, train_scores, test_scores = learning_curve(gs, model.get('X_train_std'), model.get('y_train'), cv=5, n_jobs=-1)
 
@@ -883,7 +907,7 @@ def generaGraficaResultados():
         test_scores_mean = np.mean(test_scores, axis=1)
         test_scores_std = np.std(test_scores, axis=1)
 
-        plt.figure(figsize=(8.5, 6))
+        plt.figure(figsize=(9, 6))
         plt.fill_between(train_sizes, train_scores_mean - train_scores_std,
                          train_scores_mean + train_scores_std, alpha=0.1, color="r")
         plt.fill_between(train_sizes, test_scores_mean - test_scores_std,
@@ -913,14 +937,8 @@ def generaGraficaResultados():
         plt.savefig(filepath)
         plt.close()
         GENERATED_RESULT_GRAPHICS[filename] = os.path.join('graphics', filename)
+
     elif (tipoGrafica == 'curvavalidacion'):
-        gs = model.get('gs').best_estimator_
-
-        gs.fit(model.get('X_train_std'), model.get('y_train'))
-        y_pred = gs.predict(model.get('X_test_std'))
-        print(f'Accuracy train score: %.4f' % gs.score(model.get('X_train_std'), model.get('y_train')))
-        print(f'Accuracy test score: %.4f' % accuracy_score(model.get('y_test'), y_pred))
-
         # Graficar la curva de validación
         param_range = [0.1, 1, 10]
         train_scores, test_scores = validation_curve(gs, model.get('X_train_std'), model.get('y_train'), param_name='C', param_range=param_range, cv=5)
@@ -930,7 +948,7 @@ def generaGraficaResultados():
         test_scores_mean = np.mean(test_scores, axis=1)
         test_scores_std = np.std(test_scores, axis=1)
 
-        plt.figure(figsize=(8.5, 6))
+        plt.figure(figsize=(9, 6))
         plt.fill_between(param_range, train_scores_mean - train_scores_std,
                          train_scores_mean + train_scores_std, alpha=0.1, color="r")
         plt.fill_between(param_range, test_scores_mean - test_scores_std,

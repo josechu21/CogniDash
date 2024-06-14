@@ -1,6 +1,6 @@
 import React from 'react';
 
-const CurvaPr = ({titulo, setTitulo, labelEjeX, setLabelEjeX, labelEjeY, setLabelEjeY, tema, setTema}) => {
+const CurvaPr = ({titulo, setTitulo, labelEjeX, setLabelEjeX, labelEjeY, setLabelEjeY, estilo, setEstilo, tema, setTema}) => {
 
     const handleTituloChange = (event) => {
         setTitulo(event.target.value);
@@ -21,10 +21,18 @@ const CurvaPr = ({titulo, setTitulo, labelEjeX, setLabelEjeX, labelEjeY, setLabe
     return (
         <div>
             <div className="mb-3">
-                <label htmlFor="tituloCurvaPr">Título de la gráfica</label>
+                <label htmlFor="tituloCurvaPr">Título de la gráfica (si no establece uno se asignará por defecto)</label>
                 <input type="text" placeholder="Ingrese título de la gráfica" className="form-control mb-2" id='tituloCurvaPr' name='titulo' value={titulo} onChange={handleTituloChange}/>
             </div>
             <div className="mb-3">
+                <label htmlFor="estiloCurvaPr">Estilo de gráfica</label>
+                <select className="form-select mb-2" id='estiloCurvaPr' name='estiloCurvaPr' value={estilo} onChange={handleEstiloChange}>
+                    <option value='darkgrid'>darkgrid</option>
+                    <option value='whitegrid'>whitegrid</option>
+                    <option value='dark'>dark</option>
+                    <option value='white'>white</option>
+                    <option value='ticks'>ticks</option>
+                </select>
                 <label htmlFor="temaCurvaPr">Tema de color</label>
                 <select className="form-select mb-2" id='temaCurvaPr' name='temaCurvaPr' value={tema} onChange={handleTemaChange}>
                     <optgroup label='Cualitativo'>
@@ -53,11 +61,11 @@ const CurvaPr = ({titulo, setTitulo, labelEjeX, setLabelEjeX, labelEjeY, setLabe
                 </select>
             </div>
             <div className="mb-3">
-                <label htmlFor="EjeXCurvaPr">Etiqueta del eje X</label>
+                <label htmlFor="EjeXCurvaPr">Etiqueta del eje X (si no establece una se asignará por defecto)</label>
                 <input type="text" placeholder="Ingrese etiqueta del eje X" className="form-control mb-2" id="labelEjeXCurvaPr" name='labelEjeX' value={labelEjeX} onChange={handleLabelEjeXChange}/>
             </div>
             <div className="mb-3">
-                <label htmlFor="EjeYCurvaPr">Etiqueta del eje Y</label>
+                <label htmlFor="EjeYCurvaPr">Etiqueta del eje Y (si no establece una se asignará por defecto)</label>
                 <input type="text" placeholder="Ingrese etiqueta del eje Y" className="form-control mb-2" id="labelEjeYCurvaPr" name='labelEjeY' value={labelEjeY} onChange={handleLabelEjeYChange}/>
             </div>
             <button type='submit' className="btn btn-primary">Generar Gráfica</button>

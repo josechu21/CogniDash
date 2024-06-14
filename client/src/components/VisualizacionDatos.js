@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 
+import Loader from "./Loader";
+
 import Countplot from './Graficas/Countplot';
 import Histplot from './Graficas/Histplot';
 import Boxplot from './Graficas/Boxplot';
@@ -20,6 +22,8 @@ function VisualizacionDatos({msg, setMsg, alert, setAlert}) {
     const [disabled2, setDisabled2] = useState('');
     const [showSecondStep, setShowSecondStep] = useState(false);
     const [showThirdStep, setShowThirdStep] = useState(false);
+
+    const [loading, setLoading] = useState(false); // Estado para controlar la carga
 
     const [titulo, setTitulo] = useState('');
     const [labelEjeX, setLabelEjeX] = useState('');

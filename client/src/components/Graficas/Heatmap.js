@@ -17,7 +17,7 @@ const HeatMap = ({titulo, setTitulo, estilo, setEstilo, tema, setTema}) => {
     return (
         <div>
             <div className="mb-3">
-                <label htmlFor="tituloHeatmap">Título de la gráfica</label>
+                <label htmlFor="tituloHeatmap">Título de la gráfica (si no establece uno se asignará por defecto)</label>
                 <input type="text" placeholder="Ingrese título de la gráfica" className="form-control mb-2" id='tituloHeatmap' name='titulo' value={titulo} onChange={handleTituloChange}/>
             </div>
             <div className="mb-3">

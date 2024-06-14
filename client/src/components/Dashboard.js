@@ -152,26 +152,30 @@ function Dashboard() {
                         <div>
                             <hr className="separator" />
                             <h3>Gráficas de visualización de los datos</h3>
-                            {Object.entries(graficasVisualizar).map(([key, value]) => (
-                                <div id={key} key={key} className="grafica col-6">
-                                    <img src={value} alt="grafica" />
-                                    <button className="btn btn-danger btn-lg px-3 boton-pad" value={key} onClick={handleBtnEliminarVisualizar}>Eliminar</button>
-                                    <button className="btn btn-success btn-lg px-3 boton-pad" value={key} onClick={handleBtnDescargarVisualizar}>Descargar</button>
-                                </div>
-                            ))}
+                            <div className="graficas-container row">
+                                {Object.entries(graficasVisualizar).map(([key, value]) => (
+                                    <div id={key} key={key} className="grafica col-6">
+                                        <img src={value} alt="grafica" />
+                                        <button className="btn btn-danger btn-lg px-3 boton-pad" value={key} onClick={handleBtnEliminarVisualizar}>Eliminar</button>
+                                        <button className="btn btn-success btn-lg px-3 boton-pad" value={key} onClick={handleBtnDescargarVisualizar}>Descargar</button>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
                     {hayGraficasResultados && (
                         <div>
                             <hr className="separator" />
                             <h3>Gráficas de visualización de resultados</h3>
-                            {Object.entries(graficasResultados).map(([key, value]) => (
-                                <div id={key} key={key} className="grafica col-6">
-                                    <img src={value} alt="grafica" />
-                                    <button className="btn btn-danger btn-lg px-3 boton-pad" value={key} onClick={handleBtnEliminarResultados}>Eliminar</button>
-                                    <button className="btn btn-success btn-lg px-3 boton-pad" value={key} onClick={handleBtnDescargarResultados}>Descargar</button>
-                                </div>
-                            ))}
+                            <div className="graficas-container row">
+                                {Object.entries(graficasResultados).map(([key, value]) => (
+                                    <div id={key} key={key} className="grafica col-6">
+                                        <img src={value} alt="grafica" className='img-fluid' />
+                                        <button className="btn btn-danger btn-lg px-3 boton-pad" value={key} onClick={handleBtnEliminarResultados}>Eliminar</button>
+                                        <button className="btn btn-success btn-lg px-3 boton-pad" value={key} onClick={handleBtnDescargarResultados}>Descargar</button>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>

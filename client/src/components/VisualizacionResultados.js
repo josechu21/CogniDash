@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 
+import Loader from "./Loader";
+
 import CurvaRoc from './Graficas/CurvaRoc';
 import CurvaPr from './Graficas/CurvaPr';
 import CurvaValidacion from "./Graficas/CurvaValidacion";
@@ -27,6 +29,7 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
     const [showSecondStep, setShowSecondStep] = useState(false);
     const [showThirdStep, setShowThirdStep] = useState(false);
     const [valueTipoModelo, setValueTipoModelo] = useState('randomforest');
+    const [loading, setLoading] = useState(false); // Estado para controlar la carga
 
     const [titulo, setTitulo] = useState('');
     const [labelEjeX, setLabelEjeX] = useState('');
@@ -36,6 +39,7 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
     const [valueEjeY, setValueEjeY] = useState('');
     const [estilo, setEstilo] = useState('ticks');
     const [tema, setTema] = useState('Pastel1');
+    const [varEliminar, setVarEliminar] = useState('');
 
     useEffect(() => {
         fetch('/files')
@@ -121,6 +125,7 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
 
     const handleSubmit = (event) => {
         event.preventDefault();
+        setLoading(true); // Activar el loader al enviar el formulario
 
         const formData = new FormData();
         formData.append('fileId', selectedOption);
@@ -132,6 +137,7 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
         formData.append('tema', tema);
         formData.append('modelName', valueTipoModelo);
         formData.append('hayArchivo', selectedCheckModelo === 'cargarmodelo' ? 'true' : 'false')
+        formData.append('varEliminar', varEliminar);
         if (file) {
             formData.append('file', file);
         }
@@ -141,12 +147,14 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
             body: formData,
         }).then(response => {
             if (response.ok) {
+                setLoading(false);
                 console.log('¡Gráfica generada con éxito!');
                 window.location.href = '/dashboard';
             } else {
                 response.text().then(data => {
                     setAlert('alert alert-danger mt-3');
                     setMsg('Error al generar la gráfica: ' + data);
+                    setLoading(false);
                 });
             }
         }
@@ -156,6 +164,7 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
 
     return (
         <div>
+            {loading && <Loader />}
             <hr className="separator" />
             <h2>Visualización de resultados de la predicción</h2>
             <form className='form' onSubmit={handleSubmit} encType="multipart/form-data">
