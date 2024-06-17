@@ -14,6 +14,10 @@ const CurvaPr = ({titulo, setTitulo, labelEjeX, setLabelEjeX, labelEjeY, setLabe
         setLabelEjeY(event.target.value);
     };
 
+    const handleEstiloChange = (event) => {
+        setEstilo(event.target.value);
+    };
+
     const handleTemaChange = (event) => {
         setTema(event.target.value);
     };

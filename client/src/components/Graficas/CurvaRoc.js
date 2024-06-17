@@ -14,6 +14,14 @@ const CurvaRoc = ({titulo, setTitulo, labelEjeX, setLabelEjeX, labelEjeY, setLab
         setLabelEjeY(event.target.value);
     };
 
+    const handleEstiloChange = (event) => {
+        setEstilo(event.target.value);
+    };
+
+    const handleTemaChange = (event) => {
+        setTema(event.target.value);
+    };
+
     return (
         <div>
             <div className="mb-3">

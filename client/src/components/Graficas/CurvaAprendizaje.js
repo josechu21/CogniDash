@@ -14,6 +14,14 @@ const CurvaAprendizaje = ({titulo, setTitulo, labelEjeX, setLabelEjeX, labelEjeY
         setLabelEjeY(event.target.value);
     };
 
+    const handleEstiloChange = (event) => {
+        setEstilo(event.target.value);
+    };
+
+    const handleTemaChange = (event) => {
+        setTema(event.target.value);
+    };
+
     return (
         <div>
             <div className="mb-3">

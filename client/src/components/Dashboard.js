@@ -4,11 +4,15 @@ import Footer from "./Footer";
 import '../style/footer.css';
 import '../style/dashboard.css';
 import agregarLogo from '../images/agregar.png';
+import informeLogo from '../images/informe.png';
+import Loader from './Loader';
 
 function Dashboard() {
     const [graficasVisualizar, setGraficasVisualizar] = useState([]);
     const [graficasResultados, setGraficasResultados] = useState([]);
     const [msg, setMsg] = useState(false);
+
+    const [loading, setLoading] = useState(false); // Estado para controlar la carga de la página
 
     const [hayGraficasVisualizar, setHayGraficasVisualizar] = useState(false);
     const [hayGraficasResultados, setHayGraficasResultados] = useState(false);
@@ -41,6 +45,23 @@ function Dashboard() {
 
     const handleBtnGrafica = () => {
         window.location.href = '/nueva-grafica';
+    }
+
+    const handleBtnInforme = () => {
+        setLoading(true);
+        fetch('/generaInforme')
+            .then(response => {
+                if (response.ok) {
+                    console.log('¡Informe generado correctamente!');
+                    setLoading(false);
+                    window.location.href = '/informesGenerados';
+                } else {
+                    console.error('Error al generar el informe.');
+                    setLoading(false);
+                }
+            })
+            .catch(error => console.error('Error de red:', error));
+            setLoading(false);
     }
 
     const handleBtnEliminarVisualizar = (event) => {
@@ -129,12 +150,14 @@ function Dashboard() {
 
     return (
         <div>
+            {loading && <Loader />}
             <div className="footer-container">
                 <Navbar />
                 <h1>Dashboard</h1>
                 {(Object.entries(graficasVisualizar).length > 0 || Object.entries(graficasResultados).length > 0) && (
                     <div className='boton btn-container mb-3'>
-                        <button className="btn btn-warning btn-lg px-5" onClick={handleBtnGrafica} style={{ width: '35%' }}><span><img src={agregarLogo} alt='logo' style={{ width: '10%' }} /> Añadir gráfica</span></button>
+                        <button className="btn btn-warning btn-lg px-2" onClick={handleBtnGrafica} style={{ width: '30%' }}><span><img src={agregarLogo} alt='logo' style={{ width: '10%' }} /> Añadir gráfica</span></button>
+                        <button className="btn btn-primary btn-lg px-2" onClick={handleBtnInforme} style={{ width: '10%', margin: '5px' }}><img src={informeLogo} alt='logo' style={{ width: '35%' }} /></button>
                     </div>
                 )}
                 <div className="graficas-container row">

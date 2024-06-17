@@ -18,6 +18,9 @@ from sklearn.multiclass import OneVsRestClassifier
 from itertools import cycle
 from joblib import dump, load
 
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.pdfgen import canvas
+
 
 warnings.filterwarnings('ignore')
 
@@ -204,6 +207,18 @@ def eliminaArchivo():
     # Devuelve un mensaje de éxito
     return 'Archivo eliminado correctamente', 200
 
+# URL de eliminación de informe cargado
+@app.route('/eliminaInforme', methods=['POST'])
+def eliminaInforme():
+    fileId  = request.form['fileId']
+
+    # Eliminar el archivo de la base de datos
+    db.execute(f"DELETE FROM informes WHERE id = {fileId}")
+    mydb.commit()
+
+    # Devuelve un mensaje de éxito
+    return 'Archivo eliminado correctamente', 200
+
 ################################################################################################################################################
 # URL de visualizacion en la carga de archivo
 @app.route('/visualizar', methods=['POST'])
@@ -319,6 +334,30 @@ def get_files():
     # Devolver el JSON combinado como respuesta HTTP
     return response_data, 200
 
+# URL de listado de informes cargados
+@app.route('/informes', methods=['GET'])
+def get_informes():
+
+    # Obtener la lista de archivos en BBDD
+    db.execute(f"SELECT * FROM informes WHERE id_usr = {USUARIO_LOGIN['id']} and mime = 'application/pdf'")
+    files = db.fetchall()
+
+    # crear json con los nombres y los ids de los archivos
+    upload_files = {}
+    fechas = {}
+    for file in files:
+        upload_files[file[0]] = file[1]
+        fechas[file[0]] = file[6]
+
+    # Combinar los diccionarios en uno solo
+    response_data = {
+        'fechas': fechas,
+        'upload_files': upload_files
+    }
+
+    # Devolver el JSON combinado como respuesta HTTP
+    return response_data, 200
+
 ################################################################################################################################################
 # URL de obtención de gráficas generadas
 @app.route('/graficasVisualizar', methods=['GET'])
@@ -381,6 +420,102 @@ def download_result_graphic():
 
     # Devolver el archivo como respuesta HTTP
     return send_file(os.path.join(GRAPHICS_FOLDER, filename), as_attachment=True)
+
+# URL de descarga de grafica generada
+@app.route('/descargarInforme', methods=['POST'])
+def download_informe():
+    # Obtener el nombre del archivo seleccionado
+    fileid = request.form['fileId']
+
+    # Seleccionar el archivo de bbdd
+    db.execute(f"SELECT * FROM informes WHERE id = {fileid} and id_usr = {USUARIO_LOGIN['id']}")
+    file = db.fetchone()
+
+    # Guardar el archivo en el sistema de archivos
+    with open(os.path.join(UPLOAD_FOLDER, file[1]), 'wb') as f:
+        f.write(file[4])
+
+    # Devolver el archivo como respuesta HTTP
+    return send_file(os.path.join(UPLOAD_FOLDER, file[1]), as_attachment=True)
+
+# URL de descarga de grafica generada
+@app.route('/descargarCsv', methods=['POST'])
+def download_csv():
+    # Obtener el nombre del archivo seleccionado
+    fileid = request.form['fileId']
+
+    # Seleccionar el archivo de bbdd
+    db.execute(f"SELECT * FROM datafiles WHERE id = {fileid} and id_usr = {USUARIO_LOGIN['id']}")
+    file = db.fetchone()
+
+    # Guardar el archivo en el sistema de archivos
+    with open(os.path.join(CSV_FOLDER, file[1]), 'wb') as f:
+        f.write(file[4])
+
+    # Devolver el archivo como respuesta HTTP
+    return send_file(os.path.join(CSV_FOLDER, file[1]), as_attachment=True)
+
+################################################################################################################################################
+#URL de generación de informe pdf
+@app.route('/generaInforme', methods=['GET'])
+def generaInforme():
+    print('Generando informe...')
+    
+    pdf_path = 'informe.pdf'
+    c = canvas.Canvas(pdf_path, pagesize=A4)
+    
+    c.drawString(100, 800, 'Informe de resultados')
+    c.drawString(100, 780, 'Usuario: ' + USUARIO_LOGIN['usuario'])
+    c.drawString(100, 740, 'Gráficas generadas:')
+    
+    y_position = 720
+    
+    # Agregar gráficas de visualización
+    c.drawString(100, y_position, 'Gráficas de visualización:')
+    y_position -= 20
+    
+    for i, (filename, filepath) in enumerate(GENERATED_VIEW_GRAPHICS.items()):
+        if y_position < 200:  # Nueva página si el espacio es insuficiente
+            c.showPage()
+            y_position = 800
+        img_path = os.path.join(GRAPHICS_FOLDER, filename)
+        if os.path.exists(img_path):
+            c.drawImage(img_path, 100, y_position - 200, width=400, height=200)
+            y_position -= 220
+        else:
+            c.drawString(100, y_position, f'Imagen no encontrada: {filename}')
+            y_position -= 20
+    
+    # Agregar gráficas de resultados
+    if y_position < 200:
+        c.showPage()
+        y_position = 800
+    c.drawString(100, y_position, 'Gráficas de resultados:')
+    y_position -= 20
+    
+    for i, (filename, filepath) in enumerate(GENERATED_RESULT_GRAPHICS.items()):
+        if y_position < 200:  # Nueva página si el espacio es insuficiente
+            c.showPage()
+            y_position = 800
+        img_path = os.path.join(GRAPHICS_FOLDER, filename)
+        if os.path.exists(img_path):
+            c.drawImage(img_path, 100, y_position - 200, width=400, height=200)
+            y_position -= 220
+        else:
+            c.drawString(100, y_position, f'Imagen no encontrada: {filename}')
+            y_position -= 20
+    
+    c.save()
+
+    #Subir el archivo a bbdd
+    with open(pdf_path, 'rb') as f:
+        file_data = f.read()
+        mime = 'application/pdf'
+        query = "INSERT INTO informes (filename, tamano, contenido, mime, id_usr) VALUES (%s, %s, %s, %s, %s)"
+        db.execute(query, (pdf_path, os.path.getsize(pdf_path), file_data, mime, USUARIO_LOGIN['id']))
+        mydb.commit()
+    
+    return 'Informe generado correctamente', 200
 
 ################################################################################################################################################
 # URL de generación de gráfica
@@ -672,11 +807,12 @@ def loadModelo(fileId, fileName, varEliminar):
     # Leer el contenido del archivo de la columna blob de bbdd
     df = pd.read_csv(io.BytesIO(file[4]))
 
-    varEliminar = varEliminar.split(',')
-    df.drop(varEliminar, axis=1, inplace=True)
-
-    # Eliminar las columnas que no se utilizarán en el modelo
-    #df.drop(['Subject ID', 'MRI ID', 'Hand'], axis=1, inplace=True)
+    if(varEliminar != ''):
+        varEliminar = varEliminar.split(',')
+        df.drop(varEliminar, axis=1, inplace=True)
+    else:
+        # Eliminar las columnas que no se utilizarán en el modelo
+        df.drop(['Subject ID', 'MRI ID', 'Hand'], axis=1, inplace=True)
 
     # Identificación de las columnas categóricas
     cat_columns = df.select_dtypes(include=['object']).columns
@@ -684,8 +820,8 @@ def loadModelo(fileId, fileName, varEliminar):
     le = LabelEncoder()
 
     for col in cat_columns:
-        category_mappings[col] = dict(enumerate(le.classes_))
         df[col] = le.fit_transform(df[col].values)
+        category_mappings[col] = dict(enumerate(le.classes_))
         print(f'{col}:\n' + '\n'.join(f'{i} : {val}' for i, val in enumerate(le.classes_)))
         df[col] = df[col].astype('category')
 
@@ -748,6 +884,10 @@ def generaGraficaResultados():
     modelName = request.form['modelName']
     #Obtener variables que se eliminaran
     varEliminar = request.form['varEliminar']
+    # Obtener variable objetivo
+    target = request.form['varObjetivo']
+    #Obtener %test
+    #test = request.form['test']
 
     # Comprobar si se recibió un archivo en la solicitud
     hayArchivo = request.form['hayArchivo']
@@ -867,12 +1007,17 @@ def generaGraficaResultados():
             precision[i], recall[i], _ = precision_recall_curve(y_test_bin[:, i], y_prob_bin[:, i])
             pr_auc[i] = auc(recall[i], precision[i])
 
+        # Obtener las etiquetas originales de las clases
+        class_labels = category_mappings['Group']
+
         # Graficar todas las curvas PR
         plt.figure(figsize=(9, 6))
         colors = cycle(['aqua', 'darkorange', 'cornflowerblue'])
-        for i, color in zip(range(len(np.unique(model.get('y_test')))), colors):
-            plt.plot(recall[i], precision[i], color=color, lw=2,
-                     label=f'PR curve of class {i} (area = {pr_auc[i]:.2f})')
+        for class_index, color in zip(range(len(class_labels)), colors):
+            # Obtener el nombre de la clase a partir de las etiquetas originales
+            class_name = class_labels[class_index]
+            plt.plot(recall[class_index], precision[class_index], color=color, lw=2,
+                     label=f'PR curve of class {class_name} (area = {pr_auc[class_index]:.2f})')
 
         if labelX:
             plt.xlabel(labelX)

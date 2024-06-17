@@ -87,6 +87,34 @@ function MisDatasets() {
             .catch(error => console.error('Error de red:', error));
     }
 
+    const handleDescargar = (event) => {
+        const formData = new FormData();
+        formData.append('fileId', event.target.value);
+
+        fetch('/descargarCsv', {
+            method: 'POST',
+            body: formData,
+        })
+            .then(response => {
+                if (response.ok) {
+                    console.log('¡Descarga correcta!');
+                    response.blob().then(blob => {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = event.target.value;
+                        a.click();
+                    });
+                } else {
+                    setAlert('alert alert-danger mt-3');
+                    setMsg('Error al obtener los datos.');
+                    setMostrarDatos(false);
+                    setData([{}]);
+                }
+            })
+            .catch(error => console.error('Error de red:', error));
+    };
+
     const handleBtnCargar = () => {
         window.location.href = '/subir-archivo';
     }
@@ -119,6 +147,7 @@ function MisDatasets() {
                                 })}</td>
                                 <td>
                                     <button className="btn btn-primary" value={key} onClick={handleVer}>Ver</button>
+                                    <button className="btn btn-success" value={key} onClick={handleDescargar}>Descargar</button>
                                     <button className="btn btn-danger" value={key} onClick={handleEliminarDataset}>Eliminar</button>
                                 </td>
                             </tr>

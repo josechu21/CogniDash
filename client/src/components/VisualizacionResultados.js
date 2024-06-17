@@ -7,11 +7,12 @@ import CurvaPr from './Graficas/CurvaPr';
 import CurvaValidacion from "./Graficas/CurvaValidacion";
 import CurvaAprendizaje from "./Graficas/CurvaAprendizaje";
 import MatrizConfusion from "./Graficas/MatrizConfusion";
-import grafica1 from '../images/grafica1.png';
-import grafica2 from '../images/grafica2.png';
+import curvapr from '../images/curvapr.png';
+import curvavalidacion from '../images/curvavalidacion.png';
 import grafica3 from '../images/grafica3.png';
 import grafica5 from '../images/grafica5.png';
 import grafica6 from '../images/grafica6.png';
+import curvaroc from '../images/curvaroc.png';
 
 function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
     const [file, setFile] = useState(null);
@@ -40,6 +41,7 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
     const [estilo, setEstilo] = useState('ticks');
     const [tema, setTema] = useState('Pastel1');
     const [varEliminar, setVarEliminar] = useState('');
+    const [varObjetivo, setVarObjetivo] = useState('');
 
     useEffect(() => {
         fetch('/files')
@@ -138,6 +140,7 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
         formData.append('modelName', valueTipoModelo);
         formData.append('hayArchivo', selectedCheckModelo === 'cargarmodelo' ? 'true' : 'false')
         formData.append('varEliminar', varEliminar);
+        formData.append('varObjetivo', varObjetivo);
         if (file) {
             formData.append('file', file);
         }
@@ -147,7 +150,7 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
             body: formData,
         }).then(response => {
             if (response.ok) {
-                setLoading(false);
+                //setLoading(false);
                 console.log('¡Gráfica generada con éxito!');
                 window.location.href = '/dashboard';
             } else {
@@ -237,14 +240,14 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
                                 <div className="col-sm-4">
                                     <h4>Curva Roc</h4>
                                     <div className="mb-3">
-                                        <label className="form-check-label" htmlFor="curvaroc"><img src={grafica1} alt='img' style={{ width: '50%' }} /></label>
+                                        <label className="form-check-label" htmlFor="curvaroc"><img src={curvaroc} alt='img' style={{ width: '50%' }} /></label>
                                         <input className="form-check-input" type="radio" id="curvaroc" checked={selectedCheck === 'curvaroc'} onChange={() => handleOptionChange('curvaroc')} />
                                     </div>
                                 </div>
                                 <div className="col-sm-4">
                                     <h4>Curva Pr</h4>
                                     <div className="mb-3">
-                                        <label className="form-check-label" htmlFor="curvapr"><img src={grafica2} alt='img' style={{ width: '50%' }} /></label>
+                                        <label className="form-check-label" htmlFor="curvapr"><img src={curvapr} alt='img' style={{ width: '50%' }} /></label>
                                         <input className="form-check-input" type="radio" id="curvapr" checked={selectedCheck === 'curvapr'} onChange={() => handleOptionChange('curvapr')} />
                                     </div>
                                 </div>
@@ -261,7 +264,7 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
                                 <div className="col-sm-4">
                                     <h4>Curva de Validación</h4>
                                     <div className="mb-3">
-                                        <label className="form-check-label" htmlFor="curvavalidacion"><img src={grafica3} alt='img' style={{ width: '50%' }} /></label>
+                                        <label className="form-check-label" htmlFor="curvavalidacion"><img src={curvavalidacion} alt='img' style={{ width: '50%' }} /></label>
                                         <input className="form-check-input" type="radio" id="curvavalidacion" checked={selectedCheck === 'curvavalidacion'} onChange={() => handleOptionChange('curvavalidacion')} />
                                     </div>
                                 </div>
@@ -282,7 +285,7 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
                         <div id="tercerPaso" className='form-check'>
                             <hr className="separator" />
                             <h2>Parámetros</h2>
-                            <CurvaRoc titulo={titulo} setTitulo={setTitulo} labelEjeX={labelEjeX} setLabelEjeX={setLabelEjeX} labelEjeY={labelEjeY} setLabelEjeY={setLabelEjeY}/>
+                            <CurvaRoc titulo={titulo} setTitulo={setTitulo} labelEjeX={labelEjeX} setLabelEjeX={setLabelEjeX} labelEjeY={labelEjeY} setLabelEjeY={setLabelEjeY} estilo={estilo} setEstilo={setEstilo} tema={tema} setTema={setTema}/>
                         </div>
                     )}
                     {showThirdStep && selectedCheck === 'curvapr' && (
