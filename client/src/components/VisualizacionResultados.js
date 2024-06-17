@@ -7,12 +7,11 @@ import CurvaPr from './Graficas/CurvaPr';
 import CurvaValidacion from "./Graficas/CurvaValidacion";
 import CurvaAprendizaje from "./Graficas/CurvaAprendizaje";
 import MatrizConfusion from "./Graficas/MatrizConfusion";
-import curvapr from '../images/curvapr.png';
-import curvavalidacion from '../images/curvavalidacion.png';
+import grafica1 from '../images/grafica1.png';
+import grafica2 from '../images/grafica2.png';
 import grafica3 from '../images/grafica3.png';
 import grafica5 from '../images/grafica5.png';
 import grafica6 from '../images/grafica6.png';
-import curvaroc from '../images/curvaroc.png';
 
 function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
     const [file, setFile] = useState(null);
@@ -42,6 +41,7 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
     const [tema, setTema] = useState('Pastel1');
     const [varEliminar, setVarEliminar] = useState('');
     const [varObjetivo, setVarObjetivo] = useState('');
+    const [varTest, setVarTest] = useState('10');
 
     useEffect(() => {
         fetch('/files')
@@ -65,18 +65,18 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
         setSelectedCheckModelo(option);
         setDisabled0(false);
         setShowStep0(false);
-        setShowFirstStep(false);
         setShowSecondStep(false);
         setShowThirdStep(false);
         setDisabled01(false);
-        setDisabled1(false);
         setDisabled2(false);
+        setDisabled02(false);
+        setDisabled01(false);
     };
 
     const handleSelectChange = (event) => {
         setSelectedOption(event.target.value);
         setDisabled1(false);
-        setShowSecondStep(false);
+        setShowFirstStep(false);
     };
 
     const handleContinue0 = (event) => {
@@ -87,25 +87,27 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
             setShowStep0(true);
         } else {
             setShowStep0(false);
-            setShowFirstStep(true);
+            //setShowSecondStep(true);
         }
     }
 
     const handleContinue1 = () => {
-        setDisabled1(true);
-        setShowSecondStep(true);
+        if(varObjetivo !== ''){
+            setDisabled1(true);
+            setShowFirstStep(true);
+        }
     }
 
     const handleContinue01 = () => {
-        if(file) {
+        if (file) {
             setDisabled01(true);
-            setShowFirstStep(true);
+            setShowSecondStep(true);
         }
     }
 
     const handleContinue02 = () => {
         setDisabled02(true);
-        setShowFirstStep(true);
+        setShowSecondStep(true);
     }
 
     const handleContinue2 = () => {
@@ -117,9 +119,21 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
         setFile(event.target.files[0]);
     };
 
+    const handleVarTest = (event) => {
+        console.log(event.target.value)
+        setVarTest(event.target.value);
+    };
+
+    const handleVarEliminar = (event) => {
+        setVarEliminar(event.target.value);
+    };
+    const handleVarObjetivo = (event) => {
+        setVarObjetivo(event.target.value);
+    };
+
     const handleSelectTipoModeloChange = (event) => {
         setValueTipoModelo(event.target.value);
-        setShowFirstStep(false);
+        //setShowFirstStep(false);
         setShowSecondStep(false);
         setShowThirdStep(false);
         setDisabled02(false);
@@ -141,6 +155,7 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
         formData.append('hayArchivo', selectedCheckModelo === 'cargarmodelo' ? 'true' : 'false')
         formData.append('varEliminar', varEliminar);
         formData.append('varObjetivo', varObjetivo);
+        formData.append('test', varTest);
         if (file) {
             formData.append('file', file);
         }
@@ -150,7 +165,7 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
             body: formData,
         }).then(response => {
             if (response.ok) {
-                //setLoading(false);
+                setLoading(false);
                 console.log('¡Gráfica generada con éxito!');
                 window.location.href = '/dashboard';
             } else {
@@ -172,22 +187,48 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
             <h2>Visualización de resultados de la predicción</h2>
             <form className='form' onSubmit={handleSubmit} encType="multipart/form-data">
                 <div className='container mt-5'>
-                    <div className="form-check" id='paso0'>
-                        <h3>¿Tiene ya un modelo o desea generar uno?</h3>
-                        <label htmlFor="cargarmodelo">Ya tengo un modelo</label>
-                        <input type="radio" id="cargarmodelo" name="cargarmodelo" value="cargarmodelo" checked={selectedCheckModelo === 'cargarmodelo'} onChange={() => handleModeloChange('cargarmodelo')} /><br />
-                        <label htmlFor="generarmodelo">Generar un modelo</label>
-                        <input type="radio" id="generarmodelo" name="generarmodelo" value="generarmodelo" checked={selectedCheckModelo === 'generarmodelo'} onChange={() => handleModeloChange('generarmodelo')} />
-                        <br /> <br />
-                        <button className="btn btn-primary" disabled={disabled0} onClick={handleContinue0}>Continuar</button>
-                        <br /> <br />
+                    <div id="primerPaso">
+                        <h2>Paso 1: Establece el origen de datos</h2>
+                        <br />
+                        <select value={selectedOption} onChange={handleSelectChange} id='selectDatos'>
+                            {Object.entries(options).map(([key, value]) => (
+                                <option key={key} value={key}>{value}</option>
+                            ))}
+                        </select>
+                        <br /><br />
+                        <h4>Introduce la variable objetivo</h4>
+                        <input type="text" placeholder="Introduce la variable objetivo" className="form-control mb-3" id='objetivo' name='objetivo' value={varObjetivo} onChange={handleVarObjetivo} required/>
+                        <button className="btn btn-primary" disabled={disabled1} onClick={handleContinue1}>Continuar</button>
+                        <br />
                     </div>
+                    {showFirstStep && (
+                        <div className="form-check" id='paso0'>
+                            <h3>¿Tiene ya un modelo o desea generar uno?</h3>
+                            <label htmlFor="cargarmodelo">Ya tengo un modelo</label>
+                            <input type="radio" id="cargarmodelo" name="cargarmodelo" value="cargarmodelo" checked={selectedCheckModelo === 'cargarmodelo'} onChange={() => handleModeloChange('cargarmodelo')} /><br />
+                            <label htmlFor="generarmodelo">Generar un modelo</label>
+                            <input type="radio" id="generarmodelo" name="generarmodelo" value="generarmodelo" checked={selectedCheckModelo === 'generarmodelo'} onChange={() => handleModeloChange('generarmodelo')} />
+                            <br /> <br />
+                            <button className="btn btn-primary" disabled={disabled0} onClick={handleContinue0}>Continuar</button>
+                            <br /> <br />
+                        </div>
+                    )}
                     {showStep0 && selectedCheckModelo === 'cargarmodelo' && (
                         <div id="paso0">
-                            <h3>Paso 1: Sube tu modelo.</h3>
+                            <h3>Paso 2: Sube tu modelo.</h3>
                             <br />
                             <div className="mb-3">
                                 <input className="form-control" type="file" onChange={handleFileChange} required />
+                                <br/> <br/> <br/>
+                                <h4>Introduce las variables que quieres eliminar (separadas por ,)</h4>
+                                <input type="text" placeholder="Variables a eliminar" className="form-control mb-3" id='varEliminacion' name='eliminacion' value={varEliminar} onChange={handleVarEliminar}/>
+                                <br/>
+                                <h4>Selecciona el pocentaje de Entrenamiento y Testing</h4>
+                                <select id="testing" value={varTest} onChange={handleVarTest}>
+                                    <option value="10">90% Entrenamiento, 10% Testing</option>
+                                    <option value="20">80% Entrenamiento, 20% Testing</option>
+                                    <option value="30">70% Entrenamiento, 30% Testing</option>
+                                </select>
                             </div>
                             <br />
                             <button className="btn btn-primary" disabled={disabled01} onClick={handleContinue01}>Continuar</button>
@@ -196,7 +237,7 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
                     )}
                     {showStep0 && selectedCheckModelo === 'generarmodelo' && (
                         <div id="paso0">
-                            <h3>Paso 1: Elige un modelo.</h3>
+                            <h3>Paso 2: Elige y configura un modelo.</h3>
                             <br />
                             <div className="mb-3">
                                 <select id="tipoModelo" value={valueTipoModelo} onChange={handleSelectTipoModeloChange}>
@@ -204,24 +245,20 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
                                     <option value="svm">Support Vector Machine</option>
                                     <option value="logisticregression">Regresión Logística</option>
                                 </select>
+                                <br/> <br/> <br/>
+                                <h4>Introduce las variables que quieres eliminar (separadas por ,)</h4>
+                                <input type="text" placeholder="Variables a eliminar" className="form-control mb-3" id='varEliminacion' name='eliminacion' value={varEliminar} onChange={handleVarEliminar}/>
+                                <br/>
+                                <h4>Selecciona el pocentaje de Entrenamiento y Testing</h4>
+                                <select id="testing" value={varTest} onChange={handleVarTest}>
+                                    <option value="10">90% Entrenamiento, 10% Testing</option>
+                                    <option value="20">80% Entrenamiento, 20% Testing</option>
+                                    <option value="30">70% Entrenamiento, 30% Testing</option>
+                                </select>
                             </div>
                             <br />
                             <button className="btn btn-primary" disabled={disabled02} onClick={handleContinue02}>Continuar</button>
                             <br /> <br />
-                        </div>
-                    )}
-                    {showFirstStep && (
-                        <div id="primerPaso">
-                            <h2>Paso 2: Establece el origen de datos</h2>
-                            <br />
-                            <select value={selectedOption} onChange={handleSelectChange} id='selectDatos'>
-                                {Object.entries(options).map(([key, value]) => (
-                                    <option key={key} value={key}>{value}</option>
-                                ))}
-                            </select>
-                            <br /><br />
-                            <button className="btn btn-primary" disabled={disabled1} onClick={handleContinue1}>Continuar</button>
-                            <br />
                         </div>
                     )}
                     {showSecondStep && (
@@ -240,14 +277,14 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
                                 <div className="col-sm-4">
                                     <h4>Curva Roc</h4>
                                     <div className="mb-3">
-                                        <label className="form-check-label" htmlFor="curvaroc"><img src={curvaroc} alt='img' style={{ width: '50%' }} /></label>
+                                        <label className="form-check-label" htmlFor="curvaroc"><img src={grafica1} alt='img' style={{ width: '50%' }} /></label>
                                         <input className="form-check-input" type="radio" id="curvaroc" checked={selectedCheck === 'curvaroc'} onChange={() => handleOptionChange('curvaroc')} />
                                     </div>
                                 </div>
                                 <div className="col-sm-4">
                                     <h4>Curva Pr</h4>
                                     <div className="mb-3">
-                                        <label className="form-check-label" htmlFor="curvapr"><img src={curvapr} alt='img' style={{ width: '50%' }} /></label>
+                                        <label className="form-check-label" htmlFor="curvapr"><img src={grafica2} alt='img' style={{ width: '50%' }} /></label>
                                         <input className="form-check-input" type="radio" id="curvapr" checked={selectedCheck === 'curvapr'} onChange={() => handleOptionChange('curvapr')} />
                                     </div>
                                 </div>
@@ -264,7 +301,7 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
                                 <div className="col-sm-4">
                                     <h4>Curva de Validación</h4>
                                     <div className="mb-3">
-                                        <label className="form-check-label" htmlFor="curvavalidacion"><img src={curvavalidacion} alt='img' style={{ width: '50%' }} /></label>
+                                        <label className="form-check-label" htmlFor="curvavalidacion"><img src={grafica3} alt='img' style={{ width: '50%' }} /></label>
                                         <input className="form-check-input" type="radio" id="curvavalidacion" checked={selectedCheck === 'curvavalidacion'} onChange={() => handleOptionChange('curvavalidacion')} />
                                     </div>
                                 </div>
@@ -284,8 +321,8 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
                     {showThirdStep && selectedCheck === 'curvaroc' && (
                         <div id="tercerPaso" className='form-check'>
                             <hr className="separator" />
-                            <h2>Parámetros</h2>
-                            <CurvaRoc titulo={titulo} setTitulo={setTitulo} labelEjeX={labelEjeX} setLabelEjeX={setLabelEjeX} labelEjeY={labelEjeY} setLabelEjeY={setLabelEjeY} estilo={estilo} setEstilo={setEstilo} tema={tema} setTema={setTema}/>
+                            <h2>Paso 4: Establece los parámetros</h2>
+                            <CurvaRoc titulo={titulo} setTitulo={setTitulo} labelEjeX={labelEjeX} setLabelEjeX={setLabelEjeX} labelEjeY={labelEjeY} setLabelEjeY={setLabelEjeY} estilo={estilo} setEstilo={setEstilo} tema={tema} setTema={setTema} />
                         </div>
                     )}
                     {showThirdStep && selectedCheck === 'curvapr' && (

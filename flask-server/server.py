@@ -659,7 +659,7 @@ def generaGrafica():
         return 'Gráfica generada exitosamente', 200
     
 
-def generaModelo(fileId, modelName, varEliminar):
+def generaModelo(fileId, modelName, varEliminar, target, test):
 
     variables_modelo = {}
 
@@ -671,8 +671,8 @@ def generaModelo(fileId, modelName, varEliminar):
     df = pd.read_csv(io.BytesIO(file[4]))
 
     if(varEliminar != ''):
-        varEliminar = varEliminar.split(',')
-        df.drop(varEliminar, axis=1, inplace=True)
+        for i in varEliminar.split(','):
+            df.drop(i.strip(), axis=1, inplace=True)
     else:
         # Eliminar las columnas que no se utilizarán en el modelo
         df.drop(['Subject ID', 'MRI ID', 'Hand'], axis=1, inplace=True)
@@ -698,8 +698,8 @@ def generaModelo(fileId, modelName, varEliminar):
     #df.Group = df.Group.astype('category')
     #df['M/F'] = df['M/F'].astype('category')
 
-    X, y = df.drop ('Group', axis=1).values , df.Group.values
-    X_train, X_test, y_train, y_test = train_test_split ( X, y, test_size = 0.2, random_state = 1, stratify = y)
+    X, y = df.drop(target, axis=1).values , df[target].values
+    X_train, X_test, y_train, y_test = train_test_split ( X, y, test_size = test, random_state = 1, stratify = y)
     print ('Number of observations in the target variable before oversampling of the minority class:', np.bincount (y_train) )
     smt = SMOTE()
     X_train, y_train = smt.fit_resample (X_train, y_train)
@@ -797,7 +797,7 @@ def generaModelo(fileId, modelName, varEliminar):
 
     return variables_modelo
 
-def loadModelo(fileId, fileName, varEliminar):
+def loadModelo(fileId, fileName, varEliminar, target, test):
     variables_modelo = {}
 
     # Seleccionar el archivo de bbdd
@@ -833,8 +833,8 @@ def loadModelo(fileId, fileName, varEliminar):
     #df.Group = df.Group.astype('category')
     #df['M/F'] = df['M/F'].astype('category')
 
-    X, y = df.drop ('Group', axis=1).values , df.Group.values
-    X_train, X_test, y_train, y_test = train_test_split ( X, y, test_size = 0.2, random_state = 1, stratify = y)
+    X, y = df.drop(target, axis=1).values , df[target].values
+    X_train, X_test, y_train, y_test = train_test_split ( X, y, test_size = test, random_state = 1, stratify = y)
     print ('Number of observations in the target variable before oversampling of the minority class:', np.bincount (y_train) )
     smt = SMOTE()
     X_train, y_train = smt.fit_resample (X_train, y_train)
@@ -887,7 +887,14 @@ def generaGraficaResultados():
     # Obtener variable objetivo
     target = request.form['varObjetivo']
     #Obtener %test
-    #test = request.form['test']
+    test = request.form['test']
+
+    if (test == '20'):
+        test = 0.2
+    elif (test == '10'):
+        test = 0.1
+    elif (test == '30'):
+        test = 0.3
 
     # Comprobar si se recibió un archivo en la solicitud
     hayArchivo = request.form['hayArchivo']
@@ -896,9 +903,9 @@ def generaGraficaResultados():
         file = request.files['file']
         if file:
             file.save(os.path.join(CSV_FOLDER, secure_filename(file.filename)))
-            model=loadModelo(fileId, file.filename, varEliminar)
+            model=loadModelo(fileId, file.filename, varEliminar, target, test)
     else:
-        model = generaModelo(fileId, modelName, varEliminar)
+        model = generaModelo(fileId, modelName, varEliminar, target, test)
 
     custom_params = {"axes.spines.right": False, "axes.spines.top": False}
     sns.set_theme(style=estilo, rc=custom_params, palette=tema)
@@ -927,7 +934,7 @@ def generaGraficaResultados():
             roc_auc[i] = auc(fpr[i], tpr[i])
 
         # Obtener las etiquetas originales de las clases
-        class_labels = category_mappings['Group']
+        class_labels = category_mappings[target]
 
         # Graficar todas las curvas ROC
         plt.figure(figsize=(9, 6))
@@ -1008,7 +1015,7 @@ def generaGraficaResultados():
             pr_auc[i] = auc(recall[i], precision[i])
 
         # Obtener las etiquetas originales de las clases
-        class_labels = category_mappings['Group']
+        class_labels = category_mappings[target]
 
         # Graficar todas las curvas PR
         plt.figure(figsize=(9, 6))

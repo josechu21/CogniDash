@@ -106,7 +106,7 @@ function VisualizacionDatos({msg, setMsg, alert, setAlert}) {
             <form className='form' onSubmit={handleSubmit}>
                 <div className='container mt-5'>
                     <div id="primerPaso">
-                        <h2>Origen de datos</h2>
+                        <h2>Paso 1: Origen de datos</h2>
                         <br />
                         <select value={selectedOption} onChange={handleSelectChange} id='selectDatos'>
                             {Object.entries(options).map(([key, value]) => (
@@ -120,7 +120,7 @@ function VisualizacionDatos({msg, setMsg, alert, setAlert}) {
                     {showSecondStep && (
                         <div id="segundoPaso" className='form-check'>
                             <hr className="separator" />
-                            <h2>Gráfica</h2>
+                            <h2>Paso 2: Selecciona una gráfica</h2>
                             <br />
                             <div className="row">
                                 <div className="col-sm-4">
@@ -170,28 +170,28 @@ function VisualizacionDatos({msg, setMsg, alert, setAlert}) {
                     {showThirdStep && selectedCheck === 'countplot' && (
                         <div id="tercerPaso" className='form-check'>
                             <hr className="separator" />
-                            <h2>Parámetros</h2>
+                            <h2>Paso 3: Parámetros</h2>
                             <Countplot titulo={titulo} setTitulo={setTitulo} labelEjeX={labelEjeX} setLabelEjeX={setLabelEjeX} valueEjeX={valueEjeX} setValueEjeX={setValueEjeX} labelEjeY={labelEjeY} setLabelEjeY={setLabelEjeY} valueEjeY={valueEjeY} setValueEjeY={setValueEjeY} valueHue={valueHue} setValueHue={setValueHue} estilo={estilo} setEstilo={setEstilo} tema={tema} setTema={setTema} />
                         </div>
                     )}
                     {showThirdStep && selectedCheck === 'histplot' && (
                         <div id="tercerPaso" className='form-check'>
                             <hr className="separator" />
-                            <h2>Parámetros</h2>
+                            <h2>Paso 3: Parámetros</h2>
                             <Histplot titulo={titulo} setTitulo={setTitulo} labelEjeX={labelEjeX} setLabelEjeX={setLabelEjeX} valueEjeX={valueEjeX} setValueEjeX={setValueEjeX} labelEjeY={labelEjeY} setLabelEjeY={setLabelEjeY} valueEjeY={valueEjeY} setValueEjeY={setValueEjeY} valueHue={valueHue} setValueHue={setValueHue} estilo={estilo} setEstilo={setEstilo} tema={tema} setTema={setTema} />
                         </div>
                     )}
                     {showThirdStep && selectedCheck === 'boxplot' && (
                         <div id="tercerPaso" className='form-check'>
                             <hr className="separator" />
-                            <h2>Parámetros</h2>
+                            <h2>Paso 3: Parámetros</h2>
                             <Boxplot titulo={titulo} setTitulo={setTitulo} labelEjeX={labelEjeX} setLabelEjeX={setLabelEjeX} valueEjeX={valueEjeX} setValueEjeX={setValueEjeX} labelEjeY={labelEjeY} setLabelEjeY={setLabelEjeY} valueEjeY={valueEjeY} setValueEjeY={setValueEjeY} estilo={estilo} setEstilo={setEstilo} tema={tema} setTema={setTema} />
                         </div>
                     )}
                     {showThirdStep && selectedCheck === 'scatterplot' && (
                         <div id="tercerPaso" className='form-check'>
                             <hr className="separator" />
-                            <h2>Parámetros</h2>
+                            <h2>Paso 3: Parámetros</h2>
                             <Scatterplot titulo={titulo} setTitulo={setTitulo} labelEjeX={labelEjeX} setLabelEjeX={setLabelEjeX} valueEjeX={valueEjeX} setValueEjeX={setValueEjeX} labelEjeY={labelEjeY} setLabelEjeY={setLabelEjeY} valueEjeY={valueEjeY} setValueEjeY={setValueEjeY} valueHue={valueHue} setValueHue={setValueHue} estilo={estilo} setEstilo={setEstilo} tema={tema} setTema={setTema} />
                         </div>
                     )}
@@ -199,7 +199,7 @@ function VisualizacionDatos({msg, setMsg, alert, setAlert}) {
                     {showThirdStep && selectedCheck === 'heatmap' && (
                         <div id="tercerPaso" className='form-check'>
                             <hr className="separator" />
-                            <h2>Parámetros</h2>
+                            <h2>Paso 3:Parámetros</h2>
                             <Heatmap titulo={titulo} setTitulo={setTitulo} estilo={estilo} setEstilo={setEstilo} tema={tema} setTema={setTema} />
                         </div>
                     )}
