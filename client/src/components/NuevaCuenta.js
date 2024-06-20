@@ -37,20 +37,25 @@ function NuevaCuenta() {
         formData.append('usageObjective', usageObjective);
         formData.append('observations', observations);
 
-        fetch('nueva-cuenta', {
-            method: 'POST',
-            body: formData
-        }).then(response => {
-            if (response.ok) {
-                response.text().then(data => {
-                    if (data === 'success') {
-                        window.location.href = '/inicioSesion';
-                    } else {
-                        setMsg(data);
-                    }
-                });
-            }
-        });
+        if(password !== confirmPassword){
+            setMsg("Las contraseñas no coinciden")
+        } else {
+            setMsg("")
+            fetch('/cognidash/api/nueva-cuenta', {
+                method: 'POST',
+                body: formData
+            }).then(response => {
+                if (response.ok) {
+                    response.text().then(data => {
+                        if (data === 'success') {
+                            window.location.href = '/cognidash/inicioSesion';
+                        } else {
+                            setMsg(data);
+                        }
+                    });
+                }
+            });
+        }
     }
 
     return (
@@ -116,7 +121,7 @@ function NuevaCuenta() {
                                                         <button className="btn btn-warning btn-lg btn-block" type="submit">Crear cuenta</button>
                                                     </div>
                                                     <hr className="my-4" />
-                                                    <p className="mb-5 pb-lg-2 text-white" style={{ color: '#393f81' }}>¿Ya tiene una cuenta? <a href="/inicioSesion" style={{ color: '#393f81' }}>Inicie sesión aquí</a></p>
+                                                    <p className="mb-5 pb-lg-2 text-white" style={{ color: '#393f81' }}>¿Ya tiene una cuenta? <a href="/cognidash/inicioSesion" style={{ color: '#393f81' }}>Inicie sesión aquí</a></p>
                                                 </form>
                                                 <div className="alert alert-danger" role="alert" style={{ display: msg ? 'block' : 'none' }}>
                                                     <span>{msg}</span>

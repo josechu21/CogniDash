@@ -7,9 +7,9 @@ import CurvaPr from './Graficas/CurvaPr';
 import CurvaValidacion from "./Graficas/CurvaValidacion";
 import CurvaAprendizaje from "./Graficas/CurvaAprendizaje";
 import MatrizConfusion from "./Graficas/MatrizConfusion";
-import grafica1 from '../images/grafica1.png';
-import grafica2 from '../images/grafica2.png';
-import grafica3 from '../images/grafica3.png';
+import grafica1 from '../images/curvaroc.png';
+import grafica2 from '../images/curvapr.png';
+import grafica3 from '../images/curvavalidacion.png';
 import grafica5 from '../images/grafica5.png';
 import grafica6 from '../images/grafica6.png';
 
@@ -44,7 +44,7 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
     const [varTest, setVarTest] = useState('10');
 
     useEffect(() => {
-        fetch('/files')
+        fetch('/cognidash/api/files')
             .then(response => response.json())
             .then(data => {
                 if (Object.keys(data.upload_files).length !== 0) {
@@ -160,14 +160,14 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
             formData.append('file', file);
         }
 
-        fetch('/generaGraficaResultados', {
+        fetch('/cognidash/api/generaGraficaResultados', {
             method: 'POST',
             body: formData,
         }).then(response => {
             if (response.ok) {
                 setLoading(false);
                 console.log('¡Gráfica generada con éxito!');
-                window.location.href = '/dashboard';
+                window.location.href = '/cognidash/dashboard';
             } else {
                 response.text().then(data => {
                     setAlert('alert alert-danger mt-3');
@@ -203,7 +203,7 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
                     </div>
                     {showFirstStep && (
                         <div className="form-check" id='paso0'>
-                            <h3>¿Tiene ya un modelo o desea generar uno?</h3>
+                            <h3>¿Tienes ya un modelo o deseas generar uno?</h3>
                             <label htmlFor="cargarmodelo">Ya tengo un modelo</label>
                             <input type="radio" id="cargarmodelo" name="cargarmodelo" value="cargarmodelo" checked={selectedCheckModelo === 'cargarmodelo'} onChange={() => handleModeloChange('cargarmodelo')} /><br />
                             <label htmlFor="generarmodelo">Generar un modelo</label>

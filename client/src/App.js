@@ -12,14 +12,15 @@ function App() {
   return (
     <div className="App">
       <Routes>
-        <Route path="/" element={<Navigate to="/inicioSesion" />} />
-        <Route path="/inicioSesion" element={<InicioSesion />} />
-        <Route path="/subir-archivo" element={<SubirArchivo />} />
-        <Route path="/dashboard" element={<Dashboard/>} />
-        <Route path="/misDatasets" element={<MisDatasets/>} />
-        <Route path="/informesGenerados" element={<InformesGenerados/>} />
-        <Route path="/nueva-grafica" element={<Grafica/>} />
-        <Route path="/nueva-cuenta" element={<NuevaCuenta/>} />
+        <Route path="/" element={<Navigate to="/cognidash/inicioSesion" />} />
+        <Route path="/cognidash" element={<Navigate to="/cognidash/inicioSesion" />} />
+        <Route path="/cognidash/inicioSesion" element={<InicioSesion />} />
+        <Route path="/cognidash/subir-archivo" element={<SubirArchivo />} />
+        <Route path="/cognidash/dashboard" element={<Dashboard/>} />
+        <Route path="/cognidash/misDatasets" element={<MisDatasets/>} />
+        <Route path="/cognidash/informesGenerados" element={<InformesGenerados/>} />
+        <Route path="/cognidash/nueva-grafica" element={<Grafica/>} />
+        <Route path="/cognidash/nueva-cuenta" element={<NuevaCuenta/>} />
       </Routes>
     </div>
   );

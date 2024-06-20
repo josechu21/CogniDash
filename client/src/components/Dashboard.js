@@ -18,7 +18,7 @@ function Dashboard() {
     const [hayGraficasResultados, setHayGraficasResultados] = useState(false);
 
     useEffect(() => {
-        fetch('/graficasVisualizar')
+        fetch('/cognidash/api/graficasVisualizar')
             .then(response => response.json())
             .then(data => {
                 setGraficasVisualizar(data);
@@ -30,7 +30,7 @@ function Dashboard() {
             })
             .catch(error => console.error('Error al obtener las opciones:', error));
 
-        fetch('/graficasResultados')
+        fetch('/cognidash/api/graficasResultados')
             .then(response => response.json())
             .then(data => {
                 setGraficasResultados(data);
@@ -44,17 +44,17 @@ function Dashboard() {
     }, []);
 
     const handleBtnGrafica = () => {
-        window.location.href = '/nueva-grafica';
+        window.location.href = '/cognidash/nueva-grafica';
     }
 
     const handleBtnInforme = () => {
         setLoading(true);
-        fetch('/generaInforme')
+        fetch('/cognidash/api/generaInforme')
             .then(response => {
                 if (response.ok) {
                     console.log('¡Informe generado correctamente!');
                     setLoading(false);
-                    window.location.href = '/informesGenerados';
+                    window.location.href = '/cognidash/informesGenerados';
                 } else {
                     console.error('Error al generar el informe.');
                     setLoading(false);
@@ -68,7 +68,7 @@ function Dashboard() {
         const formData = new FormData();
         formData.append('fileName', event.target.value);
 
-        fetch('/eliminaGraficaVisualizacion', {
+        fetch('/cognidash/api/eliminaGraficaVisualizacion', {
             method: 'POST',
             body: formData
         }).then(response => {
@@ -86,7 +86,7 @@ function Dashboard() {
         const formData = new FormData();
         formData.append('fileName', event.target.value);
 
-        fetch('/descargaGraficaVisualizacion', {
+        fetch('/cognidash/api/descargaGraficaVisualizacion', {
             method: 'POST',
             body: formData
         }).then(response => {
@@ -110,7 +110,7 @@ function Dashboard() {
         const formData = new FormData();
         formData.append('fileName', event.target.value);
 
-        fetch('/eliminaGraficaResultados', {
+        fetch('/cognidash/api/eliminaGraficaResultados', {
             method: 'POST',
             body: formData
         }).then(response => {
@@ -128,7 +128,7 @@ function Dashboard() {
         const formData = new FormData();
         formData.append('fileName', event.target.value);
 
-        fetch('/descargaGraficaResultados', {
+        fetch('/cognidash/api/descargaGraficaResultados', {
             method: 'POST',
             body: formData
         }).then(response => {
@@ -164,7 +164,7 @@ function Dashboard() {
                     {msg && !hayGraficasVisualizar && !hayGraficasResultados && (
                         <div className="msg">
                             <hr className="separator" />
-                            <h2>No hay gráficas disponibles, puede generar nuevas desde el menú</h2>
+                            <h2>No hay gráficas disponibles, puedes generar nuevas desde el menú</h2>
                             <hr className="separator" />
                             <div className="btn-container mb-3">
                                 <button className="btn btn-warning btn-lg px-5" onClick={handleBtnGrafica} style={{ width: '15%' }}><span><img src={agregarLogo} alt='logo' style={{ width: '10%' }} /> Añadir gráfica</span></button>

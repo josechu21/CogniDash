@@ -13,7 +13,7 @@ const Grafica = () => {
     const [visualizaResultados, setVisualizaResultados] = useState(false);
 
     useEffect(() => {
-        fetch('/files')
+        fetch('/cognidash/api/files')
             .then(response => response.json())
             .then(data => {
                 if (Object.keys(data.upload_files).length !== 0) {
@@ -34,7 +34,7 @@ const Grafica = () => {
     }
 
     const handleBtnCargar = () => {
-        window.location.href = '/subir-archivo';
+        window.location.href = '/cognidash/subir-archivo';
     }
 
     return (
@@ -42,13 +42,16 @@ const Grafica = () => {
             <div className="footer-container">
                 <Navbar />
                 <h1>Nueva Gráfica</h1>
-                <hr className="separator" />
-                <h3>¿Quiere realizar una visualización del conjunto de datos o de los resultados?</h3>
-                <div className="btn-container mb-3">
-                    <button className="btn btn-warning btn-lg px-5" onClick={handleBtnVisualizar} style={{margin: '3px'}}>Visualización de datos</button>
-                    <button className="btn btn-warning btn-lg px-5" onClick={handleBtnResultados} style={{margin: '3px'}}>Visualización de resultados</button>
-                </div>
-
+                {hayDatos && (
+                    <div>
+                        <hr className="separator" />
+                        <h3>¿Quieres realizar una visualización del conjunto de datos o de los resultados?</h3>
+                        <div className="btn-container mb-3">
+                        <button className="btn btn-warning btn-lg px-5" onClick={handleBtnVisualizar} style={{margin: '3px'}}>Visualización de datos</button>
+                        <button className="btn btn-warning btn-lg px-5" onClick={handleBtnResultados} style={{margin: '3px'}}>Visualización de resultados</button>
+                        </div>
+                    </div>
+                )}
                 {hayDatos && visualizaDatos && (
                     <VisualizacionDatos msg={msg} setMsg={setMsg} alert={alert} setAlert={setAlert}/>
                 )}

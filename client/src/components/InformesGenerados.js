@@ -16,7 +16,7 @@ function InformesGenerados() {
     const [mostrarDatos, setMostrarDatos] = useState(false);
 
     useEffect(() => {
-        fetch('/informes')
+        fetch('/cognidash/api/informes')
             .then(response => {
                 if (response.ok) {
                     response.json().then(data => {
@@ -40,7 +40,7 @@ function InformesGenerados() {
         const formData = new FormData();
         formData.append('fileId', event.target.value);
 
-        fetch('/descargarInforme', {
+        fetch('/cognidash/api/descargarInforme', {
             method: 'POST',
             body: formData,
         })
@@ -72,7 +72,7 @@ function InformesGenerados() {
         const formData = new FormData();
         formData.append('fileId', event.target.value);
 
-        fetch('/eliminaInforme', {
+        fetch('/cognidash/api/eliminaInforme', {
             method: 'POST',
             body: formData,
         })

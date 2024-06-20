@@ -1,4 +1,4 @@
-from flask import Flask, request, send_file
+from flask import Flask, session, request, send_file
 from werkzeug.utils import secure_filename
 import matplotlib
 
@@ -44,6 +44,10 @@ db = mydb.cursor()
 
 app = Flask(__name__)
 
+app.secret_key = 'supersecretkey'  # Necesario para firmar las cookies de sesión
+
+
+header = '/cognidash/api'
 
 # Extensiones de archivo permitidas
 ALLOWED_EXTENSIONS = {'csv'}
@@ -111,7 +115,7 @@ def cleanup_temp_folder(exception=None):
 
 ################################################################################################################################################
 # URL de inicio de sesión
-@app.route('/login', methods=['POST'])
+@app.route(header+'/login', methods=['POST'])
 def login():
     # Obtener las credenciales del cuerpo de la solicitud POST
     email = request.form['email']
@@ -126,6 +130,11 @@ def login():
     USUARIO_LOGIN['email'] = user[2]
     USUARIO_LOGIN['fec_alta'] = user[4]
 
+    session['id'] = user[0]
+    session['usuario'] = user[1]
+    session['email'] = user[2]
+    session['fec_alta'] = user[4]
+
     if user:
         return 'Login exitoso', 200  # Si las credenciales son válidas, devuelve un mensaje de éxito
     else:
@@ -133,21 +142,44 @@ def login():
 
 ################################################################################################################################################
 # URL de obtención de usuario
-@app.route('/usuario', methods=['GET'])
+@app.route(header+'/usuario', methods=['GET'])
 def get_usuario():
     return USUARIO_LOGIN, 200
 
 ################################################################################################################################################
 # URL de cierre de sesión
-@app.route('/logout', methods=['GET'])
+@app.route(header+'/logout', methods=['GET'])
 def logout():
     USUARIO_LOGIN.clear()
+    session.clear()
     GENERATED_VIEW_GRAPHICS.clear()
+    GENERATED_RESULT_GRAPHICS.clear()
     return 'Logout exitoso', 200
 
 ################################################################################################################################################
+#Url de registro de usuario
+@app.route(header+'/nueva-cuenta', methods=['POST'])
+def nueva_cuenta():
+    email = request.form['email']
+    password = request.form['password']
+    username = request.form['username']
+    jobTitle = request.form['jobTitle']
+    institution = request.form['institution']
+    profession = request.form['profession']
+    institution = request.form['institution']
+    usageObjective = request.form['usageObjective']
+    observations = request.form['observations']
+
+    # Inserción de los datos del archivo en la base de datos
+    query = "INSERT INTO users (username, email, password) VALUES (%s, %s, %s)"
+    db.execute(query, (username, email, password))
+    mydb.commit()
+
+    return 'success', 200
+
+################################################################################################################################################
 # URL para validar los datos de archivos cargados
-@app.route('/validar', methods=['POST'])
+@app.route(header+'/validar', methods=['POST'])
 def preview_file():
     # Obtener el nombre del archivo seleccionado
     file = request.files['file']
@@ -176,7 +208,7 @@ def preview_file():
 
 ################################################################################################################################################
 # URL de visualización de datos de archivo cargado
-@app.route('/verDataset', methods=['POST'])
+@app.route(header+'/verDataset', methods=['POST'])
 def view_dataset():
     #Recibe el nombre del archivo seleccionado
     fileId = request.form['fileId']
@@ -196,7 +228,7 @@ def view_dataset():
 
 ################################################################################################################################################
 # URL de eliminación de archivo cargado
-@app.route('/eliminaArchivo', methods=['POST'])
+@app.route(header+'/eliminaArchivo', methods=['POST'])
 def eliminaArchivo():
     fileId  = request.form['fileId']
 
@@ -208,7 +240,7 @@ def eliminaArchivo():
     return 'Archivo eliminado correctamente', 200
 
 # URL de eliminación de informe cargado
-@app.route('/eliminaInforme', methods=['POST'])
+@app.route(header+'/eliminaInforme', methods=['POST'])
 def eliminaInforme():
     fileId  = request.form['fileId']
 
@@ -221,7 +253,7 @@ def eliminaInforme():
 
 ################################################################################################################################################
 # URL de visualizacion en la carga de archivo
-@app.route('/visualizar', methods=['POST'])
+@app.route(header+'/visualizar', methods=['POST'])
 def visualizar():
     # Comprobar si se recibió un archivo en la solicitud
     if 'file' not in request.files:
@@ -251,7 +283,7 @@ def visualizar():
 
 ################################################################################################################################################
 # URL de carga de archivos
-@app.route('/upload', methods=['POST'])
+@app.route(header+'/upload', methods=['POST'])
 def upload_file():
     # Comprobar si se recibió un archivo en la solicitud
     if 'file' not in request.files:
@@ -263,7 +295,7 @@ def upload_file():
     if file and allowed_file(file.filename):
 
         # Se comprueba si el nombre del archivo ya existe en la base de datos
-        db.execute(f"SELECT * FROM datafiles WHERE filename like '%{file.filename}%' AND id_usr = {USUARIO_LOGIN['id']} AND mime = 'text/csv'")
+        db.execute(f"SELECT * FROM datafiles WHERE filename like '%{file.filename}%' AND id_usr = {session['id']} AND mime = 'text/csv'")
         file_exists = db.fetchone()
 
         if file_exists:
@@ -284,11 +316,11 @@ def upload_file():
 
         # Inserción de los datos del archivo en la base de datos
         query = "INSERT INTO datafiles (filename, tamano, contenido, mime, id_usr) VALUES (%s, %s, %s, %s, %s)"
-        db.execute(query, (secure_filename(file.filename), tamano, file_data, mime, USUARIO_LOGIN['id']))
+        db.execute(query, (secure_filename(file.filename), tamano, file_data, mime, session['id']))
         mydb.commit()
 
         # Se comprueba si el nombre del archivo ya existe en la base de datos
-        db.execute(f"SELECT * FROM datafiles WHERE filename like '%{file.filename}%' AND id_usr = {USUARIO_LOGIN['id']} AND mime = 'text/csv'")
+        db.execute(f"SELECT * FROM datafiles WHERE filename like '%{file.filename}%' AND id_usr = {session['id']} AND mime = 'text/csv'")
         file_uploaded = db.fetchone()
 
         UPLOADED_FILES[file_uploaded[0]] = file.filename
@@ -311,11 +343,11 @@ def upload_file():
 
 ################################################################################################################################################
 # URL de listado de archivos cargados
-@app.route('/files', methods=['GET'])
+@app.route(header+'/files', methods=['GET'])
 def get_files():
 
     # Obtener la lista de archivos en BBDD
-    db.execute(f"SELECT * FROM datafiles WHERE id_usr = {USUARIO_LOGIN['id']} and mime = 'text/csv'")
+    db.execute(f"SELECT * FROM datafiles WHERE id_usr = {session['id']} and mime = 'text/csv'")
     files = db.fetchall()
 
     # crear json con los nombres y los ids de los archivos
@@ -335,11 +367,11 @@ def get_files():
     return response_data, 200
 
 # URL de listado de informes cargados
-@app.route('/informes', methods=['GET'])
+@app.route(header+'/informes', methods=['GET'])
 def get_informes():
 
     # Obtener la lista de archivos en BBDD
-    db.execute(f"SELECT * FROM informes WHERE id_usr = {USUARIO_LOGIN['id']} and mime = 'application/pdf'")
+    db.execute(f"SELECT * FROM informes WHERE id_usr = {session['id']} and mime = 'application/pdf'")
     files = db.fetchall()
 
     # crear json con los nombres y los ids de los archivos
@@ -360,20 +392,20 @@ def get_informes():
 
 ################################################################################################################################################
 # URL de obtención de gráficas generadas
-@app.route('/graficasVisualizar', methods=['GET'])
+@app.route(header+'/graficasVisualizar', methods=['GET'])
 def get_view_graphics():
     # Devuelve el JSON como respuesta HTTP
     return GENERATED_VIEW_GRAPHICS, 200
 
 # URL de obtención de gráficas generadas
-@app.route('/graficasResultados', methods=['GET'])
+@app.route(header+'/graficasResultados', methods=['GET'])
 def get_result_graphics():
     # Devuelve el JSON como respuesta HTTP
     return GENERATED_RESULT_GRAPHICS, 200
 
 ################################################################################################################################################
 # URL de eliminación de gráfica generada
-@app.route('/eliminaGraficaVisualizacion', methods=['POST'])
+@app.route(header+'/eliminaGraficaVisualizacion', methods=['POST'])
 def eliminaGrafica():
     # Obtener el nombre del archivo seleccionado
     filename = request.form['fileName']
@@ -388,7 +420,7 @@ def eliminaGrafica():
     return 'Gráfica eliminada correctamente', 200
 
 # URL de eliminación de gráfica generada
-@app.route('/eliminaGraficaResultados', methods=['POST'])
+@app.route(header+'/eliminaGraficaResultados', methods=['POST'])
 def eliminaGraficaResultados():
     # Obtener el nombre del archivo seleccionado
     filename = request.form['fileName']
@@ -404,7 +436,7 @@ def eliminaGraficaResultados():
 
 ################################################################################################################################################
 # URL de descarga de grafica generada
-@app.route('/descargaGraficaVisualizacion', methods=['POST'])
+@app.route(header+'/descargaGraficaVisualizacion', methods=['POST'])
 def download_graphic():
     # Obtener el nombre del archivo seleccionado
     filename = request.form['fileName']
@@ -413,7 +445,7 @@ def download_graphic():
     return send_file(os.path.join(GRAPHICS_FOLDER, filename), as_attachment=True)
 
 # URL de descarga de grafica generada
-@app.route('/descargaGraficaResultados', methods=['POST'])
+@app.route(header+'/descargaGraficaResultados', methods=['POST'])
 def download_result_graphic():
     # Obtener el nombre del archivo seleccionado
     filename = request.form['fileName']
@@ -422,13 +454,13 @@ def download_result_graphic():
     return send_file(os.path.join(GRAPHICS_FOLDER, filename), as_attachment=True)
 
 # URL de descarga de grafica generada
-@app.route('/descargarInforme', methods=['POST'])
+@app.route(header+'/descargarInforme', methods=['POST'])
 def download_informe():
     # Obtener el nombre del archivo seleccionado
     fileid = request.form['fileId']
 
     # Seleccionar el archivo de bbdd
-    db.execute(f"SELECT * FROM informes WHERE id = {fileid} and id_usr = {USUARIO_LOGIN['id']}")
+    db.execute(f"SELECT * FROM informes WHERE id = {fileid} and id_usr = {session['id']}")
     file = db.fetchone()
 
     # Guardar el archivo en el sistema de archivos
@@ -439,13 +471,13 @@ def download_informe():
     return send_file(os.path.join(UPLOAD_FOLDER, file[1]), as_attachment=True)
 
 # URL de descarga de grafica generada
-@app.route('/descargarCsv', methods=['POST'])
+@app.route(header+'/descargarCsv', methods=['POST'])
 def download_csv():
     # Obtener el nombre del archivo seleccionado
     fileid = request.form['fileId']
 
     # Seleccionar el archivo de bbdd
-    db.execute(f"SELECT * FROM datafiles WHERE id = {fileid} and id_usr = {USUARIO_LOGIN['id']}")
+    db.execute(f"SELECT * FROM datafiles WHERE id = {fileid} and id_usr = {session['id']}")
     file = db.fetchone()
 
     # Guardar el archivo en el sistema de archivos
@@ -457,54 +489,70 @@ def download_csv():
 
 ################################################################################################################################################
 #URL de generación de informe pdf
-@app.route('/generaInforme', methods=['GET'])
+@app.route(header+'/generaInforme', methods=['GET'])
 def generaInforme():
     print('Generando informe...')
     
     pdf_path = 'informe.pdf'
     c = canvas.Canvas(pdf_path, pagesize=A4)
-    
+
+    # Título del informe
+    c.setFont("Helvetica-Bold", 20)
     c.drawString(100, 800, 'Informe de resultados')
-    c.drawString(100, 780, 'Usuario: ' + USUARIO_LOGIN['usuario'])
+
+    # Subtítulo del usuario
+    c.setFont("Helvetica", 16)
+    c.drawString(100, 780, 'Usuario: ' + session['usuario'])
+
+    # Subtítulo de gráficas generadas
+    c.setFont("Helvetica-Bold", 18)
     c.drawString(100, 740, 'Gráficas generadas:')
-    
+
     y_position = 720
-    
-    # Agregar gráficas de visualización
-    c.drawString(100, y_position, 'Gráficas de visualización:')
-    y_position -= 20
-    
+
+    if(len(GENERATED_VIEW_GRAPHICS) > 0):
+        # Sección de gráficas de visualización
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(100, y_position, 'Gráficas de visualización:')
+        y_position -= 20
+
+    square_size = 400  # Definir un tamaño cuadrado para las gráficas
+
     for i, (filename, filepath) in enumerate(GENERATED_VIEW_GRAPHICS.items()):
         if y_position < 200:  # Nueva página si el espacio es insuficiente
             c.showPage()
             y_position = 800
         img_path = os.path.join(GRAPHICS_FOLDER, filename)
         if os.path.exists(img_path):
-            c.drawImage(img_path, 100, y_position - 200, width=400, height=200)
-            y_position -= 220
+            c.drawImage(img_path, 100, y_position - square_size, width=square_size, height=square_size)
+            y_position -= (square_size + 20)
         else:
+            c.setFont("Helvetica", 12)
             c.drawString(100, y_position, f'Imagen no encontrada: {filename}')
             y_position -= 20
-    
-    # Agregar gráficas de resultados
+
+    # Sección de gráficas de resultados
     if y_position < 200:
         c.showPage()
         y_position = 800
-    c.drawString(100, y_position, 'Gráficas de resultados:')
-    y_position -= 20
-    
+    if(len(GENERATED_RESULT_GRAPHICS) > 0):
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(100, y_position, 'Gráficas de resultados:')
+        y_position -= 20
+
     for i, (filename, filepath) in enumerate(GENERATED_RESULT_GRAPHICS.items()):
         if y_position < 200:  # Nueva página si el espacio es insuficiente
             c.showPage()
             y_position = 800
         img_path = os.path.join(GRAPHICS_FOLDER, filename)
         if os.path.exists(img_path):
-            c.drawImage(img_path, 100, y_position - 200, width=400, height=200)
-            y_position -= 220
+            c.drawImage(img_path, 100, y_position - square_size, width=square_size, height=square_size)
+            y_position -= (square_size + 20)
         else:
+            c.setFont("Helvetica", 12)
             c.drawString(100, y_position, f'Imagen no encontrada: {filename}')
             y_position -= 20
-    
+
     c.save()
 
     #Subir el archivo a bbdd
@@ -512,14 +560,14 @@ def generaInforme():
         file_data = f.read()
         mime = 'application/pdf'
         query = "INSERT INTO informes (filename, tamano, contenido, mime, id_usr) VALUES (%s, %s, %s, %s, %s)"
-        db.execute(query, (pdf_path, os.path.getsize(pdf_path), file_data, mime, USUARIO_LOGIN['id']))
+        db.execute(query, (pdf_path, os.path.getsize(pdf_path), file_data, mime, session['id']))
         mydb.commit()
     
     return 'Informe generado correctamente', 200
 
 ################################################################################################################################################
 # URL de generación de gráfica
-@app.route('/generaGraficaVisualizacion', methods=['POST'])
+@app.route(header+'/generaGraficaVisualizacion', methods=['POST'])
 def generaGrafica():
     # Obtener el nombre del archivo seleccionado
     fileId = request.form['fileId']
@@ -673,11 +721,6 @@ def generaModelo(fileId, modelName, varEliminar, target, test):
     if(varEliminar != ''):
         for i in varEliminar.split(','):
             df.drop(i.strip(), axis=1, inplace=True)
-    else:
-        # Eliminar las columnas que no se utilizarán en el modelo
-        df.drop(['Subject ID', 'MRI ID', 'Hand'], axis=1, inplace=True)
-
-
 
     # Identificación de las columnas categóricas
     cat_columns = df.select_dtypes(include=['object']).columns
@@ -808,11 +851,8 @@ def loadModelo(fileId, fileName, varEliminar, target, test):
     df = pd.read_csv(io.BytesIO(file[4]))
 
     if(varEliminar != ''):
-        varEliminar = varEliminar.split(',')
-        df.drop(varEliminar, axis=1, inplace=True)
-    else:
-        # Eliminar las columnas que no se utilizarán en el modelo
-        df.drop(['Subject ID', 'MRI ID', 'Hand'], axis=1, inplace=True)
+        for i in varEliminar.split(','):
+            df.drop(i.strip(), axis=1, inplace=True)
 
     # Identificación de las columnas categóricas
     cat_columns = df.select_dtypes(include=['object']).columns
@@ -864,7 +904,7 @@ def loadModelo(fileId, fileName, varEliminar, target, test):
 
 
 # URL de generación de gráfica
-@app.route('/generaGraficaResultados', methods=['POST'])
+@app.route(header+'/generaGraficaResultados', methods=['POST'])
 def generaGraficaResultados():
     # Obtener el nombre del archivo seleccionado
     fileId = request.form['fileId']
@@ -970,24 +1010,29 @@ def generaGraficaResultados():
         plt.close()
         GENERATED_RESULT_GRAPHICS[filename] = os.path.join('graphics', filename)
 
-    elif (tipoGrafica == 'matrizconfusion'):
+    elif tipoGrafica == 'matrizconfusion':
         # Calcular la matriz de confusión
         cm = confusion_matrix(model.get('y_test'), y_pred)
 
-        # Graficar la matriz de confusión
-        #modificar tamaño de la grafica
+        # Normalizar la matriz de confusión para mostrar porcentajes
+        cm_normalized = cm/np.sum(cm)
+
+        # Obtener las etiquetas originales de las clases
+        class_labels = [category_mappings[target][i] for i in np.unique(model.get('y_test'))]
+
+        # Graficar la matriz de confusión con etiquetas de clases originales y porcentajes
         plt.figure(figsize=(9, 6))
-        sns.heatmap(cm, annot=True, fmt='d', cmap=tema)
+        sns.heatmap(cm_normalized, annot=True, fmt='.2%', cmap=tema, xticklabels=class_labels, yticklabels=class_labels)
         if titulo:
-            plt.title(titulo, size = 20, weight='bold')
+            plt.title(titulo, size=20, weight='bold')
         else:
-            plt.title('Matriz de confusión', size = 20, weight='bold')
+            plt.title('Matriz de confusión', size=20, weight='bold')
 
         if labelX:
             plt.xlabel(labelX)
         else:
             plt.xlabel('Predicted labels')
-            
+
         if labelY:
             plt.ylabel(labelY)
         else:
@@ -1139,4 +1184,4 @@ def generaGraficaResultados():
 atexit.register(cleanup_temp_folder)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)

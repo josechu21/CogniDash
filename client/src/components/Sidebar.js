@@ -18,7 +18,7 @@ const SideMenu = () => {
     };
 
     useEffect(() => {
-        fetch('/usuario')
+        fetch('/cognidash/api/usuario')
             .then(response => response.json())
             .then(data => {
                 setNombreUsuario(data.usuario);
@@ -41,10 +41,10 @@ const SideMenu = () => {
     }, []);
 
     const handleLogout = () => {
-        fetch('/logout')
+        fetch('/cognidash/api/logout')
             .then(response => {
                 if (response.ok) {
-                    window.location.href = '/';
+                    window.location.href = '/cognidash';
                 } else {
                     console.error('Error al cerrar sesión.');
                 }
@@ -76,11 +76,11 @@ const SideMenu = () => {
                 <li><hr className="text-white"/></li>
                 <br/>
                 <li>
-                    <NavLink to="/subir-archivo"><button className='btn btn-primary btn-rounded' style={{width: '60%'}}><span><img src={uploadLogo} alt='logo' style={{width: '15%'}}/> Subir archivo</span></button></NavLink>
+                    <NavLink to="/cognidash/subir-archivo"><button className='btn btn-primary btn-rounded' style={{width: '60%'}}><span><img src={uploadLogo} alt='logo' style={{width: '15%'}}/> Subir archivo</span></button></NavLink>
                 </li>
                 <br/>
                 <li>
-                    <NavLink to="/nueva-grafica"><button className='btn btn-primary btn-rounded' style={{width: '60%'}}><span><img src={agregarLogo} alt='logo' style={{width: '15%'}}/> Añadir gráfica</span></button></NavLink>
+                    <NavLink to="/cognidash/nueva-grafica"><button className='btn btn-primary btn-rounded' style={{width: '60%'}}><span><img src={agregarLogo} alt='logo' style={{width: '15%'}}/> Añadir gráfica</span></button></NavLink>
                 </li>
                 <li style={{position: 'relative', top: '365px'}}>
                     <button className='btn btn-danger btn-rounded' onClick={handleLogout}>Cerrar sesión</button>

@@ -13,13 +13,13 @@ function Navbar() {
           <div className="collapse navbar-collapse" id="navbarNav">
             <ul className="navbar-nav mx-auto">
               <li className="nav-item">
-                <NavLink className={`nav-link btn-nav ${activeTab === 'dashboard' ? 'activo' : ''}`} to="/dashboard" onClick={() => setActiveTab('dashboard')}>Dashboard</NavLink>
+                <NavLink className={`nav-link btn-nav ${activeTab === 'dashboard' ? 'activo' : ''}`} to="/cognidash/dashboard" onClick={() => setActiveTab('dashboard')}>Dashboard</NavLink>
               </li>
               <li className="nav-item">
-                <NavLink className={`nav-link btn-nav ${activeTab === 'misDatasets' ? 'activo' : ''}`} to="/misDatasets" onClick={() => setActiveTab('misDatasets')}>Mis Datasets</NavLink>
+                <NavLink className={`nav-link btn-nav ${activeTab === 'misDatasets' ? 'activo' : ''}`} to="/cognidash/misDatasets" onClick={() => setActiveTab('misDatasets')}>Mis Datasets</NavLink>
               </li>
               <li className="nav-item">
-                <NavLink className={`nav-link btn-nav ${activeTab === 'informesGenerados' ? 'activo' : ''}`} to="/informesGenerados" onClick={() => setActiveTab('informesGenerados')}>Informes Generados</NavLink>
+                <NavLink className={`nav-link btn-nav ${activeTab === 'informesGenerados' ? 'activo' : ''}`} to="/cognidash/informesGenerados" onClick={() => setActiveTab('informesGenerados')}>Informes Generados</NavLink>
               </li>
             </ul>
           </div>

@@ -31,7 +31,7 @@ function FileUploadForm() {
     const formData = new FormData();
     formData.append('file', file);
 
-    fetch('/validar', {
+    fetch('/cognidash/api/validar', {
       method: 'POST',
       body: formData,
     })
@@ -77,7 +77,7 @@ function FileUploadForm() {
       formData.append('file', file);
 
       // Aquí puedes enviar formData al servidor usando fetch o alguna biblioteca de HTTP
-      fetch('/visualizar', {
+      fetch('/cognidash/api/visualizar', {
         method: 'POST',
         body: formData,
       })
@@ -120,7 +120,7 @@ function FileUploadForm() {
       formData.append('file', file);
 
       // Aquí puedes enviar formData al servidor usando fetch o alguna biblioteca de HTTP
-      fetch('/upload', {
+      fetch('/cognidash/api/upload', {
         method: 'POST',
         body: formData,
       })
@@ -130,7 +130,7 @@ function FileUploadForm() {
             setMsg('¡Archivo enviado con éxito!');
             response.json().then(data => {
               setData(data);
-              window.location.href = '/misDatasets';
+              window.location.href = '/cognidash/misDatasets';
             });
           } else {
             response.text().then(data => {

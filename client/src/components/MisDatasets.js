@@ -16,7 +16,7 @@ function MisDatasets() {
     const [mostrarDatos, setMostrarDatos] = useState(false);
 
     useEffect(() => {
-        fetch('/files')
+        fetch('/cognidash/api/files')
             .then(response => {
                 if (response.ok) {
                     response.json().then(data => {
@@ -40,7 +40,7 @@ function MisDatasets() {
         const formData = new FormData();
         formData.append('fileId', event.target.value);
 
-        fetch('/verDataset', {
+        fetch('/cognidash/api/verDataset', {
             method: 'POST',
             body: formData,
         })
@@ -71,7 +71,7 @@ function MisDatasets() {
         const formData = new FormData();
         formData.append('fileId', event.target.value);
 
-        fetch('/eliminaArchivo', {
+        fetch('/cognidash/api/eliminaArchivo', {
             method: 'POST',
             body: formData,
         })
@@ -91,7 +91,7 @@ function MisDatasets() {
         const formData = new FormData();
         formData.append('fileId', event.target.value);
 
-        fetch('/descargarCsv', {
+        fetch('/cognidash/api/descargarCsv', {
             method: 'POST',
             body: formData,
         })
@@ -116,7 +116,7 @@ function MisDatasets() {
     };
 
     const handleBtnCargar = () => {
-        window.location.href = '/subir-archivo';
+        window.location.href = '/cognidash/subir-archivo';
     }
 
     return (

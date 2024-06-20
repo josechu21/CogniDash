@@ -35,7 +35,7 @@ function VisualizacionDatos({msg, setMsg, alert, setAlert}) {
     const [tema, setTema] = useState('Pastel1');
 
     useEffect(() => {
-        fetch('/files')
+        fetch('/cognidash/api/files')
             .then(response => response.json())
             .then(data => {
                 if (Object.keys(data.upload_files).length !== 0) {
@@ -81,13 +81,13 @@ function VisualizacionDatos({msg, setMsg, alert, setAlert}) {
         formData.append('estilo', estilo);
         formData.append('tema', tema);
 
-        fetch('/generaGraficaVisualizacion', {
+        fetch('/cognidash/api/generaGraficaVisualizacion', {
             method: 'POST',
             body: formData,
         }).then(response => {
             if (response.ok) {
                 console.log('¡Gráfica generada con éxito!');
-                window.location.href = '/dashboard';
+                window.location.href = '/cognidash/dashboard';
             } else {
                 response.text().then(data => {
                     setAlert('alert alert-danger mt-3');
