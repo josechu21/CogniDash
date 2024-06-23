@@ -9,11 +9,6 @@ function NuevaCuenta() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [msg, setMsg] = useState(null);
-    const [profession, setProfession] = useState('');
-    const [jobTitle, setJobTitle] = useState('');
-    const [institution, setInstitution] = useState('');
-    const [usageObjective, setUsageObjective] = useState('');
-    const [observations, setObservations] = useState('');
     const [acceptTerms, setAcceptTerms] = useState(false);
 
     const handleSubmit = (e) => {
@@ -30,15 +25,11 @@ function NuevaCuenta() {
         formData.append('email', email);
         formData.append('password', password);
         formData.append('username', username);
-        formData.append('confirmPassword', confirmPassword);
-        formData.append('profession', profession);
-        formData.append('jobTitle', jobTitle);
-        formData.append('institution', institution);
-        formData.append('usageObjective', usageObjective);
-        formData.append('observations', observations);
 
         if(password !== confirmPassword){
             setMsg("Las contraseñas no coinciden")
+        } else if (!acceptTerms){
+            setMsg("Debe aceptar la política de privacidad")
         } else {
             setMsg("")
             fetch('/cognidash/api/nueva-cuenta', {
@@ -61,10 +52,10 @@ function NuevaCuenta() {
     return (
         <div>
             <div className="footer-container2">
-                <section className="vh-200 login-custom">
+                <section className="vh-100 login-custom">
                     <div className="container py-5 h-100">
                         <div className="row d-flex justify-content-center align-items-center h-100">
-                            <div className="col col-xl-8">
+                            <div className="col col-xl-10">
                                 <div className="card" style={{ borderRadius: '1rem' }}>
                                     <div className="row g-0">
                                         <div className="col-md-6 col-lg-12 d-flex align-items-center">
@@ -90,26 +81,6 @@ function NuevaCuenta() {
                                                     <div className="form-outline mb-4">
                                                         <label className="form-label" htmlFor="confirmPassword">Confirmar contraseña</label>
                                                         <input type="password" id="confirmPassword" className="form-control form-control-lg" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
-                                                    </div>
-                                                    <div className="form-outline mb-4">
-                                                        <label className="form-label" htmlFor="profession">Profesión</label>
-                                                        <input type="text" id="profession" className="form-control form-control-lg" value={profession} onChange={(e) => setProfession(e.target.value)} required />
-                                                    </div>
-                                                    <div className="form-outline mb-4">
-                                                        <label className="form-label" htmlFor="jobTitle">Puesto de trabajo</label>
-                                                        <input type="text" id="jobTitle" className="form-control form-control-lg" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} required />
-                                                    </div>
-                                                    <div className="form-outline mb-4">
-                                                        <label className="form-label" htmlFor="institution">Institución</label>
-                                                        <input type="text" id="institution" className="form-control form-control-lg" value={institution} onChange={(e) => setInstitution(e.target.value)} required />
-                                                    </div>
-                                                    <div className="form-outline mb-4">
-                                                        <label className="form-label" htmlFor="usageObjective">Objetivo de utilización</label>
-                                                        <input type="text" id="usageObjective" className="form-control form-control-lg" value={usageObjective} onChange={(e) => setUsageObjective(e.target.value)} required />
-                                                    </div>
-                                                    <div className="form-outline mb-4">
-                                                        <label className="form-label" htmlFor="observations">Observaciones</label>
-                                                        <textarea id="observations" className="form-control form-control-lg" value={observations} onChange={(e) => setObservations(e.target.value)} required />
                                                     </div>
                                                     <div className="form-check mb-4">
                                                         <input className="form-check-input " type="checkbox" value={acceptTerms} id="acceptTerms" onChange={(e) => setAcceptTerms(e.target.checked)} required />

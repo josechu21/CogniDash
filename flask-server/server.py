@@ -163,12 +163,6 @@ def nueva_cuenta():
     email = request.form['email']
     password = request.form['password']
     username = request.form['username']
-    jobTitle = request.form['jobTitle']
-    institution = request.form['institution']
-    profession = request.form['profession']
-    institution = request.form['institution']
-    usageObjective = request.form['usageObjective']
-    observations = request.form['observations']
 
     # Inserción de los datos del archivo en la base de datos
     query = "INSERT INTO users (username, email, password) VALUES (%s, %s, %s)"
@@ -885,7 +879,7 @@ def loadModelo(fileId, fileName, varEliminar, target, test):
 
     gs = load(os.path.join(CSV_FOLDER, fileName))
 
-    gs = gs.fit ( X_train_std, y_train )
+    #gs = gs.fit ( X_train_std, y_train )
 
     variables_modelo = {
         'df': df,
@@ -955,7 +949,7 @@ def generaGraficaResultados():
 
     gs = model.get('gs').best_estimator_
 
-    gs.fit(model.get('X_train_std'), model.get('y_train'))
+    #gs.fit(model.get('X_train_std'), model.get('y_train'))
     y_pred = gs.predict(model.get('X_test_std'))
     print(f'Accuracy train score: %.4f' % gs.score(model.get('X_train_std'), model.get('y_train')))
     print(f'Accuracy test score: %.4f' % accuracy_score(model.get('y_test'), y_pred))
