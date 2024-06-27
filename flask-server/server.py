@@ -869,13 +869,13 @@ def loadModelo(fileId, fileName, varEliminar, target, test):
 
     X, y = df.drop(target, axis=1).values , df[target].values
     X_train, X_test, y_train, y_test = train_test_split ( X, y, test_size = test, random_state = 1, stratify = y)
-    print ('Number of observations in the target variable before oversampling of the minority class:', np.bincount (y_train) )
-    smt = SMOTE()
-    X_train, y_train = smt.fit_resample (X_train, y_train)
-    print ('\nNumber of observations in the target variable after oversampling of the minority class:', np.bincount (y_train) )
-    std_scaler = StandardScaler()
-    X_train_std = std_scaler.fit_transform ( X_train )
-    X_test_std = std_scaler.transform ( X_test )
+    #print ('Number of observations in the target variable before oversampling of the minority class:', np.bincount (y_train) )
+    #smt = SMOTE()
+    #X_train, y_train = smt.fit_resample (X_train, y_train)
+    #print ('\nNumber of observations in the target variable after oversampling of the minority class:', np.bincount (y_train) )
+    #std_scaler = StandardScaler()
+    #X_train_std = std_scaler.fit_transform ( X_train )
+    #X_test_std = std_scaler.transform ( X_test )
 
     gs = load(os.path.join(CSV_FOLDER, fileName))
 
@@ -883,9 +883,9 @@ def loadModelo(fileId, fileName, varEliminar, target, test):
 
     variables_modelo = {
         'df': df,
-        'X_train_std': X_train_std,
-        'y_train': y_train,
-        'X_test_std': X_test_std,
+        #'X_train_std': X_train_std,
+        #'y_train': y_train,
+        #'X_test_std': X_test_std,
         'y_test': y_test,
         'gs.best_params_': gs.best_params_,
         'gs.best_score_': gs.best_score_,
@@ -951,7 +951,7 @@ def generaGraficaResultados():
 
     #gs.fit(model.get('X_train_std'), model.get('y_train'))
     y_pred = gs.predict(model.get('X_test_std'))
-    print(f'Accuracy train score: %.4f' % gs.score(model.get('X_train_std'), model.get('y_train')))
+    #print(f'Accuracy train score: %.4f' % gs.score(model.get('X_train_std'), model.get('y_train')))
     print(f'Accuracy test score: %.4f' % accuracy_score(model.get('y_test'), y_pred))
 
     if(tipoGrafica == 'curvaroc'):
