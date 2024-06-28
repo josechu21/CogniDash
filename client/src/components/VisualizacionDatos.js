@@ -103,6 +103,7 @@ function VisualizacionDatos({msg, setMsg, alert, setAlert}) {
 
     return (
         <div>
+            {loading && <Loader />}
             <hr className="separator" />
             <h2>Visualización de datos del conjunto</h2>
             <form className='form' onSubmit={handleSubmit}>
