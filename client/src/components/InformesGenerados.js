@@ -91,7 +91,7 @@ function InformesGenerados() {
     return (
         <div className="footer-container">
             <Navbar />
-            <h1>Mis Datasets</h1>
+            <h1>Informes generados</h1>
             {hayDatos && (
                 <table className="table table-striped">
                     <thead>
