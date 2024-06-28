@@ -495,33 +495,33 @@ def generaInforme():
     
     pdf_path = 'informe.pdf'
     c = canvas.Canvas(pdf_path, pagesize=A4)
+    width, height = A4
 
     # Título del informe
     c.setFont("Helvetica-Bold", 20)
-    c.drawString(100, 800, 'Informe de resultados')
+    c.drawString(100, height - 50, 'Informe de resultados')
 
     # Subtítulo del usuario
     c.setFont("Helvetica", 16)
-    c.drawString(100, 780, 'Usuario: ' + session['usuario'])
+    c.drawString(100, height - 80, 'Usuario: ' + session['usuario'])
 
     # Subtítulo de gráficas generadas
     c.setFont("Helvetica-Bold", 18)
-    c.drawString(100, 740, 'Gráficas generadas:')
+    c.drawString(100, height - 120, 'Gráficas generadas:')
 
-    y_position = 720
+    y_position = height - 140
+    square_size = 200  # Tamaño cuadrado para las gráficas
 
-    if(len(GENERATED_VIEW_GRAPHICS) > 0):
+    if len(GENERATED_VIEW_GRAPHICS) > 0:
         # Sección de gráficas de visualización
         c.setFont("Helvetica-Bold", 16)
-        c.drawString(100, y_position, 'Gráficas de visualización:')
+        c.drawString(100, y_position, 'Gráficas de visualización de datos:')
         y_position -= 20
 
-    square_size = 400  # Definir un tamaño cuadrado para las gráficas
-
     for i, (filename, filepath) in enumerate(GENERATED_VIEW_GRAPHICS.items()):
-        if y_position < 200:  # Nueva página si el espacio es insuficiente
+        if y_position < square_size + 50:  # Nueva página si el espacio es insuficiente
             c.showPage()
-            y_position = 800
+            y_position = height - 50
         img_path = os.path.join(GRAPHICS_FOLDER, filename)
         if os.path.exists(img_path):
             c.drawImage(img_path, 100, y_position - square_size, width=square_size, height=square_size)
@@ -532,18 +532,18 @@ def generaInforme():
             y_position -= 20
 
     # Sección de gráficas de resultados
-    if y_position < 200:
-        c.showPage()
-        y_position = 800
-    if(len(GENERATED_RESULT_GRAPHICS) > 0):
+    if len(GENERATED_RESULT_GRAPHICS) > 0:
+        if y_position < square_size + 50:
+            c.showPage()
+            y_position = height - 50
         c.setFont("Helvetica-Bold", 16)
-        c.drawString(100, y_position, 'Gráficas de resultados:')
+        c.drawString(100, y_position, 'Gráficas de visualización de resultados:')
         y_position -= 20
 
     for i, (filename, filepath) in enumerate(GENERATED_RESULT_GRAPHICS.items()):
-        if y_position < 200:  # Nueva página si el espacio es insuficiente
+        if y_position < square_size + 50:  # Nueva página si el espacio es insuficiente
             c.showPage()
-            y_position = 800
+            y_position = height - 50
         img_path = os.path.join(GRAPHICS_FOLDER, filename)
         if os.path.exists(img_path):
             c.drawImage(img_path, 100, y_position - square_size, width=square_size, height=square_size)
