@@ -168,7 +168,7 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
             } else {
                 response.text().then(data => {
                     setAlert('alert alert-danger mt-3');
-                    setMsg('Error al generar gráfico. ' + data);
+                    setMsg('Error al generar gráfica. ' + data);
                     setLoading(false);
                 });
             }

@@ -417,7 +417,7 @@ def eliminaGrafica():
     os.remove(os.path.join(GRAPHICS_FOLDER, filename))
 
     # Devuelve un mensaje de éxito
-    return 'Gráfico eliminado correctamente', 200
+    return 'Gráfica eliminado correctamente', 200
 
 # URL de eliminación de gráfica generada
 @app.route(header+'/eliminaGraficaResultados', methods=['POST'])
@@ -432,7 +432,7 @@ def eliminaGraficaResultados():
     os.remove(os.path.join(GRAPHICS_FOLDER, filename))
 
     # Devuelve un mensaje de éxito
-    return 'Gráfico eliminado correctamente', 200
+    return 'Gráfica eliminada correctamente', 200
 
 ################################################################################################################################################
 # URL de descarga de grafica generada
@@ -506,14 +506,14 @@ def generaInforme():
 
     # Subtítulo de gráficas generadas
     c.setFont("Helvetica-Bold", 18)
-    c.drawString(100, 740, 'Gráficos generados:')
+    c.drawString(100, 740, 'Gráficas generadas:')
 
     y_position = 720
 
     if(len(GENERATED_VIEW_GRAPHICS) > 0):
         # Sección de gráficas de visualización
         c.setFont("Helvetica-Bold", 16)
-        c.drawString(100, y_position, 'Gráficos de visualización:')
+        c.drawString(100, y_position, 'Gráficas de visualización:')
         y_position -= 20
 
     square_size = 400  # Definir un tamaño cuadrado para las gráficas
@@ -537,7 +537,7 @@ def generaInforme():
         y_position = 800
     if(len(GENERATED_RESULT_GRAPHICS) > 0):
         c.setFont("Helvetica-Bold", 16)
-        c.drawString(100, y_position, 'Gráficos de resultados:')
+        c.drawString(100, y_position, 'Gráficas de resultados:')
         y_position -= 20
 
     for i, (filename, filepath) in enumerate(GENERATED_RESULT_GRAPHICS.items()):
@@ -695,7 +695,7 @@ def generaGrafica():
                 plt.ylabel(labelY)
 
         if tipoGrafica not in ['countplot', 'histplot', 'scatterplot', 'heatmap', 'boxplot']:
-            return 'Tipo de gráfico no válido', 400
+            return 'Tipo de gráfica no válido', 400
         else:
             # numero de elementos del array generated_graphics
             num = len(GENERATED_VIEW_GRAPHICS)
@@ -708,9 +708,9 @@ def generaGrafica():
             GENERATED_VIEW_GRAPHICS[filename] = os.path.join('graphics', filename)
 
     except Exception as e:
-        return 'No se ha podido generar el gráfico: ' + str(e), 400
+        return 'No se ha podido generar la gráfica: ' + str(e), 400
 
-        return 'Gráfico generado exitosamente', 200
+    return 'Gráfica generada exitosamente', 200
     
 
 def generaModelo(fileId, modelName, varEliminar, target, test):
@@ -1148,9 +1148,9 @@ def generaGraficaResultados():
 
     except Exception as e:
         #print('No se ha podido generar el gráfico: ' + e)
-        return 'No se ha podido generar el gráfico: ' + str(e), 400
+        return 'No se ha podido generar la gráfica: ' + str(e), 400
 
-    return 'Gráfico generado exitosamente', 200
+    return 'Gráfica generada exitosamente', 200
 
 ################################################################################################################################################
 # Añadimos al registro la función de eliminación de carpetas temporales
