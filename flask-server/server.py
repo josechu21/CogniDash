@@ -85,6 +85,9 @@ def init():
     createTempDirs()
 
 def createTempDirs():
+    if os.path.exists(graphics_temp_dir):
+        shutil.rmtree(graphics_temp_dir)
+
     os.makedirs(upload_temp_dir, exist_ok=True)
     os.makedirs(csv_temp_dir, exist_ok=True)
     os.makedirs(graphics_temp_dir, exist_ok=True)
@@ -257,6 +260,7 @@ def visualizar():
     
     # Comprobar si el archivo tiene el formato permitido
     if file and allowed_file(file.filename):
+        print(file.filename)
 
         # Por ejemplo, guardar el archivo en el sistema de archivos
         file.save(os.path.join(CSV_FOLDER, secure_filename(file.filename)))
@@ -287,6 +291,8 @@ def upload_file():
     
     # Comprobar si el archivo tiene el formato permitido
     if file and allowed_file(file.filename):
+
+        print(file.filename)
 
         # Se comprueba si el nombre del archivo ya existe en la base de datos
         db.execute(f"SELECT * FROM datafiles WHERE filename like '%{file.filename}%' AND id_usr = {session['id']} AND mime = 'text/csv'")
@@ -411,7 +417,7 @@ def eliminaGrafica():
     os.remove(os.path.join(GRAPHICS_FOLDER, filename))
 
     # Devuelve un mensaje de éxito
-    return 'Gráfica eliminada correctamente', 200
+    return 'Gráfico eliminado correctamente', 200
 
 # URL de eliminación de gráfica generada
 @app.route(header+'/eliminaGraficaResultados', methods=['POST'])
@@ -426,7 +432,7 @@ def eliminaGraficaResultados():
     os.remove(os.path.join(GRAPHICS_FOLDER, filename))
 
     # Devuelve un mensaje de éxito
-    return 'Gráfica eliminada correctamente', 200
+    return 'Gráfico eliminado correctamente', 200
 
 ################################################################################################################################################
 # URL de descarga de grafica generada
@@ -500,14 +506,14 @@ def generaInforme():
 
     # Subtítulo de gráficas generadas
     c.setFont("Helvetica-Bold", 18)
-    c.drawString(100, 740, 'Gráficas generadas:')
+    c.drawString(100, 740, 'Gráficos generados:')
 
     y_position = 720
 
     if(len(GENERATED_VIEW_GRAPHICS) > 0):
         # Sección de gráficas de visualización
         c.setFont("Helvetica-Bold", 16)
-        c.drawString(100, y_position, 'Gráficas de visualización:')
+        c.drawString(100, y_position, 'Gráficos de visualización:')
         y_position -= 20
 
     square_size = 400  # Definir un tamaño cuadrado para las gráficas
@@ -531,7 +537,7 @@ def generaInforme():
         y_position = 800
     if(len(GENERATED_RESULT_GRAPHICS) > 0):
         c.setFont("Helvetica-Bold", 16)
-        c.drawString(100, y_position, 'Gráficas de resultados:')
+        c.drawString(100, y_position, 'Gráficos de resultados:')
         y_position -= 20
 
     for i, (filename, filepath) in enumerate(GENERATED_RESULT_GRAPHICS.items()):
@@ -563,336 +569,351 @@ def generaInforme():
 # URL de generación de gráfica
 @app.route(header+'/generaGraficaVisualizacion', methods=['POST'])
 def generaGrafica():
-    # Obtener el nombre del archivo seleccionado
-    fileId = request.form['fileId']
-    # Obtener el tipo de gráfica seleccionado
-    tipoGrafica = request.form['tipoGrafica']
-    # Obtener el título de la gráfica
-    titulo = request.form['titulo'].upper()
-    # Obtener la etiqueta del eje X
-    labelX = request.form['labelEjeX'].upper()
-    # Obtener campo de X
-    valueEjeX = request.form['valueEjeX']
-    # Obtener la etiqueta del eje Y
-    labelY = request.form['labelEjeY'].upper()
-    # Obtener campo de Y
-    valueEjeY = request.form['valueEjeY']
-    # Obtener HUE (variable categórica de agrupación)
-    valueHue = request.form['valueHue']
-    # Obtener el estilo de la gráfica
-    estilo = request.form['estilo']
-    # Obtener el tema de la gráfica
-    tema = request.form['tema']
 
-    # Seleccionar el archivo de bbdd
-    db.execute(f"SELECT * FROM datafiles WHERE id = {fileId}")
-    file = db.fetchone()
+    try:
 
-    # Leer el contenido del archivo de la columna blob de bbdd
-    df = pd.read_csv(io.BytesIO(file[4]))
+        # Obtener el nombre del archivo seleccionado
+        fileId = request.form['fileId']
+        # Obtener el tipo de gráfica seleccionado
+        tipoGrafica = request.form['tipoGrafica']
+        # Obtener el título de la gráfica
+        titulo = request.form['titulo'].upper()
+        # Obtener la etiqueta del eje X
+        labelX = request.form['labelEjeX'].upper()
+        # Obtener campo de X
+        valueEjeX = request.form['valueEjeX']
+        # Obtener la etiqueta del eje Y
+        labelY = request.form['labelEjeY'].upper()
+        # Obtener campo de Y
+        valueEjeY = request.form['valueEjeY']
+        # Obtener HUE (variable categórica de agrupación)
+        valueHue = request.form['valueHue']
+        # Obtener el estilo de la gráfica
+        estilo = request.form['estilo']
+        # Obtener el tema de la gráfica
+        tema = request.form['tema']
 
-    custom_params = {"axes.spines.right": False, "axes.spines.top": False}
-    sns.set_theme(style=estilo, rc=custom_params, palette=tema)
-    plt.figure(figsize=(9, 7))
+        # Seleccionar el archivo de bbdd
+        db.execute(f"SELECT * FROM datafiles WHERE id = {fileId}")
+        file = db.fetchone()
 
-    if tipoGrafica == 'countplot':
-        if valueEjeX and not valueEjeY:
-            if valueEjeX not in df.columns:
-                return 'El campo seleccionado para X no existe en el archivo.', 400
-            if valueHue:
-                sns.countplot(data=df, x=valueEjeX, hue=valueHue)
-            else:
-                sns.countplot(data=df, x=valueEjeX)
+        # Leer el contenido del archivo de la columna blob de bbdd
+        df = pd.read_csv(io.BytesIO(file[4]))
 
-        elif valueEjeY and not valueEjeX:
-            if valueEjeY not in df.columns:
-                return 'El campo seleccionado para Y no existe en el archivo.', 400
-            if valueHue:
-                sns.countplot(data=df, y=valueEjeY, hue=valueHue)
-            else:
-                sns.countplot(data=df, y=valueEjeY)
-        
-        plt.title(titulo, size = 20, weight='bold')
-        if labelX:
-            plt.xlabel(labelX)
-        if labelY:
-            plt.ylabel(labelY)
-    
-    elif tipoGrafica == 'histplot':
-        if valueEjeX and not valueEjeY:
-            if valueEjeX not in df.columns:
-                return 'El campo seleccionado para X no existe en el archivo.', 400
-            if valueHue:
-                sns.histplot(data=df, x=valueEjeX, binwidth=5, kde=True, hue=valueHue)
-            else:
-                sns.histplot(data=df, x=valueEjeX, binwidth=5, kde=True)
-        elif valueEjeY and not valueEjeX:
-            if valueEjeY not in df.columns:
-                return 'El campo seleccionado para Y no existe en el archivo.', 400
-            if valueHue:
-                sns.histplot(data=df, y=valueEjeY, binwidth=5, kde=True, hue=valueHue)
-            else:
-                sns.histplot(data=df, y=valueEjeY, binwidth=5, kde=True)
+        custom_params = {"axes.spines.right": False, "axes.spines.top": False}
+        sns.set_theme(style=estilo, rc=custom_params, palette=tema)
+        plt.figure(figsize=(9, 7))
 
-        plt.title(titulo, size = 20, weight='bold')
-        if labelX:
-            plt.xlabel(labelX)
-        if labelY:
-            plt.ylabel(labelY)
+        if tipoGrafica == 'countplot':
+            if valueEjeX and not valueEjeY:
+                if valueEjeX not in df.columns:
+                    return 'El campo seleccionado para X no existe en el archivo.', 400
+                if valueHue:
+                    sns.countplot(data=df, x=valueEjeX, hue=valueHue)
+                else:
+                    sns.countplot(data=df, x=valueEjeX)
 
-    elif tipoGrafica == 'scatterplot':
-        if valueEjeX and valueEjeY:
-            if valueEjeX not in df.columns or valueEjeY not in df.columns:
-                return 'Los campos seleccionados para X o Y no existen en el archivo.', 400
-            if valueHue:
-                sns.scatterplot(data=df, x=valueEjeX, y=valueEjeY, hue=valueHue, alpha=0.7)
-            else:
-                sns.scatterplot(data=df, x=valueEjeX, y=valueEjeY, alpha=0.7)
-            plt.title(titulo, size = 20, weight='bold')
+            elif valueEjeY and not valueEjeX:
+                if valueEjeY not in df.columns:
+                    return 'El campo seleccionado para Y no existe en el archivo.', 400
+                if valueHue:
+                    sns.countplot(data=df, y=valueEjeY, hue=valueHue)
+                else:
+                    sns.countplot(data=df, y=valueEjeY)
+
+            plt.title(titulo, size = 18, weight='bold')
             if labelX:
                 plt.xlabel(labelX)
             if labelY:
                 plt.ylabel(labelY)
+
+        elif tipoGrafica == 'histplot':
+            if valueEjeX and not valueEjeY:
+                if valueEjeX not in df.columns:
+                    return 'El campo seleccionado para X no existe en el archivo.', 400
+                if valueHue:
+                    sns.histplot(data=df, x=valueEjeX, binwidth=5, kde=True, hue=valueHue)
+                else:
+                    sns.histplot(data=df, x=valueEjeX, binwidth=5, kde=True)
+            elif valueEjeY and not valueEjeX:
+                if valueEjeY not in df.columns:
+                    return 'El campo seleccionado para Y no existe en el archivo.', 400
+                if valueHue:
+                    sns.histplot(data=df, y=valueEjeY, binwidth=5, kde=True, hue=valueHue)
+                else:
+                    sns.histplot(data=df, y=valueEjeY, binwidth=5, kde=True)
+
+            plt.title(titulo, size = 18, weight='bold')
+            if labelX:
+                plt.xlabel(labelX)
+            if labelY:
+                plt.ylabel(labelY)
+
+        elif tipoGrafica == 'scatterplot':
+            if valueEjeX and valueEjeY:
+                if valueEjeX not in df.columns or valueEjeY not in df.columns:
+                    return 'Los campos seleccionados para X o Y no existen en el archivo.', 400
+                if valueHue:
+                    sns.scatterplot(data=df, x=valueEjeX, y=valueEjeY, hue=valueHue, alpha=0.7)
+                else:
+                    sns.scatterplot(data=df, x=valueEjeX, y=valueEjeY, alpha=0.7)
+                plt.title(titulo, size = 18, weight='bold')
+                if labelX:
+                    plt.xlabel(labelX)
+                if labelY:
+                    plt.ylabel(labelY)
+            else:
+                return 'Debe seleccionar un campo para el eje X y otro para el eje Y', 400
+
+        elif tipoGrafica == 'heatmap':
+            # Seleccionar todas las columnas de tipo object (string)
+            string_columns = df.select_dtypes(include=['object']).columns
+            # Eliminar las columnas seleccionadas del DataFrame
+            df.drop(columns=string_columns, inplace=True)
+
+            sns.heatmap(df.corr(), annot=True, fmt=".2f", linewidths=0.7, cbar=True, cmap=tema)
+            plt.title(titulo, size = 18, weight='bold')
+
+        elif tipoGrafica == 'boxplot':
+            if valueEjeX and valueEjeY:
+                if valueEjeX not in df.columns or valueEjeY not in df.columns:
+                    return 'Los campos seleccionados para X o Y no existen en el archivo.', 400
+                sns.boxplot(data=df, x=valueEjeX, y=valueEjeY, showfliers=False)
+            elif valueEjeX and not valueEjeY:
+                if valueEjeX not in df.columns:
+                    return 'El campo seleccionado para X no existe en el archivo.', 400
+                sns.boxplot(data=df, x=valueEjeX, showfliers=False)
+            elif valueEjeY and not valueEjeX:
+                if valueEjeY not in df.columns:
+                    return 'El campo seleccionado para Y no existe en el archivo.', 400
+                sns.boxplot(data=df, y=valueEjeY, showfliers=False)
+
+            plt.title(titulo, size = 18, weight='bold')
+            if labelX:
+                plt.xlabel(labelX)
+            if labelY:
+                plt.ylabel(labelY)
+
+        if tipoGrafica not in ['countplot', 'histplot', 'scatterplot', 'heatmap', 'boxplot']:
+            return 'Tipo de gráfico no válido', 400
         else:
-            return 'Debe seleccionar un campo para el eje X y otro para el eje Y', 400
+            # numero de elementos del array generated_graphics
+            num = len(GENERATED_VIEW_GRAPHICS)
 
-    elif tipoGrafica == 'heatmap':
-        # Seleccionar todas las columnas de tipo object (string)
-        string_columns = df.select_dtypes(include=['object']).columns
-        # Eliminar las columnas seleccionadas del DataFrame
-        df.drop(columns=string_columns, inplace=True)
-        
-        sns.heatmap(df.corr(), annot=True, fmt=".2f", linewidths=0.7, cbar=True, cmap=tema)
-        plt.title(titulo, size = 20, weight='bold')
+            #Guardar la gráfica en un archivo
+            filename = f'{tipoGrafica}_{num+1}.png'
+            filepath = os.path.join(GRAPHICS_FOLDER, filename)
+            plt.savefig(filepath)
+            plt.close()
+            GENERATED_VIEW_GRAPHICS[filename] = os.path.join('graphics', filename)
 
-    elif tipoGrafica == 'boxplot':
-        if valueEjeX and valueEjeY:
-            if valueEjeX not in df.columns or valueEjeY not in df.columns:
-                return 'Los campos seleccionados para X o Y no existen en el archivo.', 400
-            sns.boxplot(data=df, x=valueEjeX, y=valueEjeY, showfliers=False)
-        elif valueEjeX and not valueEjeY:
-            if valueEjeX not in df.columns:
-                return 'El campo seleccionado para X no existe en el archivo.', 400
-            sns.boxplot(data=df, x=valueEjeX, showfliers=False)
-        elif valueEjeY and not valueEjeX:
-            if valueEjeY not in df.columns:
-                return 'El campo seleccionado para Y no existe en el archivo.', 400
-            sns.boxplot(data=df, y=valueEjeY, showfliers=False)
+    except Exception as e:
+        return 'No se ha podido generar el gráfico: ' + str(e), 400
 
-        plt.title(titulo, size = 20, weight='bold')
-        if labelX:
-            plt.xlabel(labelX)
-        if labelY:
-            plt.ylabel(labelY)
-
-    if tipoGrafica not in ['countplot', 'histplot', 'scatterplot', 'heatmap', 'boxplot']:
-        return 'Tipo de gráfica no válido', 400
-    else:
-        # numero de elementos del array generated_graphics
-        num = len(GENERATED_VIEW_GRAPHICS)
-
-        #Guardar la gráfica en un archivo
-        filename = f'{tipoGrafica}_{num+1}.png'
-        filepath = os.path.join(GRAPHICS_FOLDER, filename)
-        plt.savefig(filepath)
-        plt.close()
-        GENERATED_VIEW_GRAPHICS[filename] = os.path.join('graphics', filename)
-
-        return 'Gráfica generada exitosamente', 200
+        return 'Gráfico generado exitosamente', 200
     
 
 def generaModelo(fileId, modelName, varEliminar, target, test):
 
     variables_modelo = {}
 
-    # Seleccionar el archivo de bbdd
-    db.execute(f"SELECT * FROM datafiles WHERE id = {fileId}")
-    file = db.fetchone()
+    try:
 
-    # Leer el contenido del archivo de la columna blob de bbdd
-    df = pd.read_csv(io.BytesIO(file[4]))
+        # Seleccionar el archivo de bbdd
+        db.execute(f"SELECT * FROM datafiles WHERE id = {fileId}")
+        file = db.fetchone()
 
-    if(varEliminar != ''):
-        for i in varEliminar.split(','):
-            df.drop(i.strip(), axis=1, inplace=True)
+        # Leer el contenido del archivo de la columna blob de bbdd
+        df = pd.read_csv(io.BytesIO(file[4]))
 
-    # Identificación de las columnas categóricas
-    cat_columns = df.select_dtypes(include=['object']).columns
+        if(varEliminar != ''):
+            for i in varEliminar.split(','):
+                df.drop(i.strip(), axis=1, inplace=True)
 
-    le = LabelEncoder()
+        # Identificación de las columnas categóricas
+        cat_columns = df.select_dtypes(include=['object']).columns
 
-    for col in cat_columns:
-        df[col] = le.fit_transform(df[col].values)
-        category_mappings[col] = dict(enumerate(le.classes_))
-        print(f'{col}:\n' + '\n'.join(f'{i} : {val}' for i, val in enumerate(le.classes_)))
-        df[col] = df[col].astype('category')
+        le = LabelEncoder()
 
-    #df['M/F'] = le.fit_transform ( df['M/F'].values )
-    #print ( 'Sex:\n0 : %s \n1 : %s\n\n' %(le.classes_[0], le.classes_[1]) )
+        for col in cat_columns:
+            df[col] = le.fit_transform(df[col].values)
+            category_mappings[col] = dict(enumerate(le.classes_))
+            print(f'{col}:\n' + '\n'.join(f'{i} : {val}' for i, val in enumerate(le.classes_)))
+            df[col] = df[col].astype('category')
 
-    #df.Group = le.fit_transform ( df.Group.values )
-    #print ( 'Dementia:\n0 : %s \n1 : %s \n2 : %s' %(le.classes_[0], le.classes_[1], le.classes_[2]) )
-    #df.Group = df.Group.astype('category')
-    #df['M/F'] = df['M/F'].astype('category')
+        #df['M/F'] = le.fit_transform ( df['M/F'].values )
+        #print ( 'Sex:\n0 : %s \n1 : %s\n\n' %(le.classes_[0], le.classes_[1]) )
 
-    X, y = df.drop(target, axis=1).values , df[target].values
-    X_train, X_test, y_train, y_test = train_test_split ( X, y, test_size = test, random_state = 1, stratify = y)
-    print ('Number of observations in the target variable before oversampling of the minority class:', np.bincount (y_train) )
-    smt = SMOTE()
-    X_train, y_train = smt.fit_resample (X_train, y_train)
-    print ('\nNumber of observations in the target variable after oversampling of the minority class:', np.bincount (y_train) )
-    std_scaler = StandardScaler()
-    X_train_std = std_scaler.fit_transform ( X_train )
-    X_test_std = std_scaler.transform ( X_test )
+        #df.Group = le.fit_transform ( df.Group.values )
+        #print ( 'Dementia:\n0 : %s \n1 : %s \n2 : %s' %(le.classes_[0], le.classes_[1], le.classes_[2]) )
+        #df.Group = df.Group.astype('category')
+        #df['M/F'] = df['M/F'].astype('category')
 
-    if modelName == 'logisticregression':
-        lr = LogisticRegression(random_state=42)
-        param_grid = {
-            'C': [0.1, 1, 10],
-            'solver': ['liblinear', 'lbfgs']
-        }
-        gs = GridSearchCV(estimator=lr,
-                      param_grid=param_grid,
-                      scoring='accuracy',
-                      cv=5,
-                      refit=True,
-                      n_jobs=-1)
-        gs = gs.fit(X_train_std, y_train)
+        X, y = df.drop(target, axis=1).values , df[target].values
+        X_train, X_test, y_train, y_test = train_test_split ( X, y, test_size = test, random_state = 1, stratify = y)
+        print ('Number of observations in the target variable before oversampling of the minority class:', np.bincount (y_train) )
+        smt = SMOTE()
+        X_train, y_train = smt.fit_resample (X_train, y_train)
+        print ('\nNumber of observations in the target variable after oversampling of the minority class:', np.bincount (y_train) )
+        std_scaler = StandardScaler()
+        X_train_std = std_scaler.fit_transform ( X_train )
+        X_test_std = std_scaler.transform ( X_test )
 
-        variables_modelo = {
-            'df': df,
-            'X_train_std': X_train_std,
-            'y_train': y_train,
-            'X_test_std': X_test_std,
-            'y_test': y_test,
-            'gs.best_params_': gs.best_params_,
-            'gs.best_score_': gs.best_score_,
-            'gs.best_estimator_': gs.best_estimator_,
-            'gs': gs
-        }
+        if modelName == 'logisticregression':
+            lr = LogisticRegression(random_state=42)
+            param_grid = {
+                'C': [0.1, 1, 10],
+                'solver': ['liblinear', 'lbfgs']
+            }
+            gs = GridSearchCV(estimator=lr,
+                          param_grid=param_grid,
+                          scoring='accuracy',
+                          cv=5,
+                          refit=True,
+                          n_jobs=-1)
+            gs = gs.fit(X_train_std, y_train)
 
-    elif modelName == 'svm':
-        svc = SVC(random_state=42, probability=True)  # `probability=True` is needed for `predict_proba`
-        param_grid = { 
-            'C': [0.1, 1, 10],
-            'kernel': ['linear', 'rbf']
-        }
-        gs = GridSearchCV(estimator=svc,
-                      param_grid=param_grid,
-                      scoring='accuracy',
-                      cv=5,
-                      refit=True,
-                      n_jobs=-1)
+            variables_modelo = {
+                'df': df,
+                'X_train_std': X_train_std,
+                'y_train': y_train,
+                'X_test_std': X_test_std,
+                'y_test': y_test,
+                'gs.best_params_': gs.best_params_,
+                'gs.best_score_': gs.best_score_,
+                'gs.best_estimator_': gs.best_estimator_,
+                'gs': gs
+            }
 
-        gs = gs.fit(X_train_std, y_train)
+        elif modelName == 'svm':
+            svc = SVC(random_state=42, probability=True)  # `probability=True` is needed for `predict_proba`
+            param_grid = { 
+                'C': [0.1, 1, 10],
+                'kernel': ['linear', 'rbf']
+            }
+            gs = GridSearchCV(estimator=svc,
+                          param_grid=param_grid,
+                          scoring='accuracy',
+                          cv=5,
+                          refit=True,
+                          n_jobs=-1)
 
-        variables_modelo = {
-            'df': df,
-            'X_train_std': X_train_std,
-            'y_train': y_train,
-            'X_test_std': X_test_std,
-            'y_test': y_test,
-            'gs.best_params_': gs.best_params_,
-            'gs.best_score_': gs.best_score_,
-            'gs.best_estimator_': gs.best_estimator_,
-            'gs': gs
-        }
+            gs = gs.fit(X_train_std, y_train)
 
-    elif modelName == 'randomforest':
-        rfc = RandomForestClassifier(n_jobs=-1, random_state=42) 
+            variables_modelo = {
+                'df': df,
+                'X_train_std': X_train_std,
+                'y_train': y_train,
+                'X_test_std': X_test_std,
+                'y_test': y_test,
+                'gs.best_params_': gs.best_params_,
+                'gs.best_score_': gs.best_score_,
+                'gs.best_estimator_': gs.best_estimator_,
+                'gs': gs
+            }
 
-        param_grid = { 
-            'n_estimators': [500, 700, 900],
-            'min_samples_split': [2,4,6,8,10]
-        }
+        elif modelName == 'randomforest':
+            rfc = RandomForestClassifier(n_jobs=-1, random_state=42) 
 
-        gs = GridSearchCV ( estimator = rfc,
-                       param_grid = param_grid,
-                       scoring = 'accuracy',
-                       cv = 5,
-                       refit = True,
-                       n_jobs = -1
-                       )
+            param_grid = { 
+                'n_estimators': [500, 700, 900],
+                'min_samples_split': [2,4,6,8,10]
+            }
 
-        gs = gs.fit ( X_train_std, y_train )
+            gs = GridSearchCV ( estimator = rfc,
+                           param_grid = param_grid,
+                           scoring = 'accuracy',
+                           cv = 5,
+                           refit = True,
+                           n_jobs = -1
+                           )
 
-        variables_modelo = {
-            'df': df,
-            'X_train_std': X_train_std,
-            'y_train': y_train,
-            'X_test_std': X_test_std,
-            'y_test': y_test,
-            'gs.best_params_': gs.best_params_,
-            'gs.best_score_': gs.best_score_,
-            'gs.best_estimator_': gs.best_estimator_,
-            'gs': gs
-        }
+            gs = gs.fit ( X_train_std, y_train )
 
-        
+            variables_modelo = {
+                'df': df,
+                'X_train_std': X_train_std,
+                'y_train': y_train,
+                'X_test_std': X_test_std,
+                'y_test': y_test,
+                'gs.best_params_': gs.best_params_,
+                'gs.best_score_': gs.best_score_,
+                'gs.best_estimator_': gs.best_estimator_,
+                'gs': gs
+            }
 
-        #dump(gs, os.path.join(CSV_FOLDER, modelName + '.joblib'))
+
+
+            #dump(gs, os.path.join(CSV_FOLDER, modelName + '.joblib'))
+
+    except Exception as e:
+        return {"error": str(e)}
 
     return variables_modelo
 
 def loadModelo(fileId, fileName, varEliminar, target, test):
     variables_modelo = {}
 
-    # Seleccionar el archivo de bbdd
-    db.execute(f"SELECT * FROM datafiles WHERE id = {fileId}")
-    file = db.fetchone()
+    try:
 
-    # Leer el contenido del archivo de la columna blob de bbdd
-    df = pd.read_csv(io.BytesIO(file[4]))
+        # Seleccionar el archivo de bbdd
+        db.execute(f"SELECT * FROM datafiles WHERE id = {fileId}")
+        file = db.fetchone()
 
-    if(varEliminar != ''):
-        for i in varEliminar.split(','):
-            df.drop(i.strip(), axis=1, inplace=True)
+        # Leer el contenido del archivo de la columna blob de bbdd
+        df = pd.read_csv(io.BytesIO(file[4]))
 
-    # Identificación de las columnas categóricas
-    cat_columns = df.select_dtypes(include=['object']).columns
+        if(varEliminar != ''):
+            for i in varEliminar.split(','):
+                df.drop(i.strip(), axis=1, inplace=True)
 
-    le = LabelEncoder()
+        # Identificación de las columnas categóricas
+        cat_columns = df.select_dtypes(include=['object']).columns
 
-    for col in cat_columns:
-        df[col] = le.fit_transform(df[col].values)
-        category_mappings[col] = dict(enumerate(le.classes_))
-        print(f'{col}:\n' + '\n'.join(f'{i} : {val}' for i, val in enumerate(le.classes_)))
-        df[col] = df[col].astype('category')
+        le = LabelEncoder()
 
-    #df['M/F'] = le.fit_transform ( df['M/F'].values )
-    #print ( 'Sex:\n0 : %s \n1 : %s\n\n' %(le.classes_[0], le.classes_[1]) )
+        for col in cat_columns:
+            df[col] = le.fit_transform(df[col].values)
+            category_mappings[col] = dict(enumerate(le.classes_))
+            print(f'{col}:\n' + '\n'.join(f'{i} : {val}' for i, val in enumerate(le.classes_)))
+            df[col] = df[col].astype('category')
 
-    #df.Group = le.fit_transform ( df.Group.values )
-    #print ( 'Dementia:\n0 : %s \n1 : %s \n2 : %s' %(le.classes_[0], le.classes_[1], le.classes_[2]) )
-    #df.Group = df.Group.astype('category')
-    #df['M/F'] = df['M/F'].astype('category')
+        #df['M/F'] = le.fit_transform ( df['M/F'].values )
+        #print ( 'Sex:\n0 : %s \n1 : %s\n\n' %(le.classes_[0], le.classes_[1]) )
 
-    X, y = df.drop(target, axis=1).values , df[target].values
-    X_train, X_test, y_train, y_test = train_test_split ( X, y, test_size = test, random_state = 1, stratify = y)
-    #print ('Number of observations in the target variable before oversampling of the minority class:', np.bincount (y_train) )
-    #smt = SMOTE()
-    #X_train, y_train = smt.fit_resample (X_train, y_train)
-    #print ('\nNumber of observations in the target variable after oversampling of the minority class:', np.bincount (y_train) )
-    #std_scaler = StandardScaler()
-    #X_train_std = std_scaler.fit_transform ( X_train )
-    #X_test_std = std_scaler.transform ( X_test )
+        #df.Group = le.fit_transform ( df.Group.values )
+        #print ( 'Dementia:\n0 : %s \n1 : %s \n2 : %s' %(le.classes_[0], le.classes_[1], le.classes_[2]) )
+        #df.Group = df.Group.astype('category')
+        #df['M/F'] = df['M/F'].astype('category')
 
-    gs = load(os.path.join(CSV_FOLDER, fileName))
+        X, y = df.drop(target, axis=1).values , df[target].values
+        X_train, X_test, y_train, y_test = train_test_split ( X, y, test_size = test, random_state = 1, stratify = y)
+        #print ('Number of observations in the target variable before oversampling of the minority class:', np.bincount (y_train) )
+        smt = SMOTE()
+        X_train, y_train = smt.fit_resample (X_train, y_train)
+        #print ('\nNumber of observations in the target variable after oversampling of the minority class:', np.bincount (y_train) )
+        std_scaler = StandardScaler()
+        X_train_std = std_scaler.fit_transform ( X_train )
+        X_test_std = std_scaler.transform ( X_test )
 
-    #gs = gs.fit ( X_train_std, y_train )
+        gs = load(os.path.join(CSV_FOLDER, fileName))
 
-    variables_modelo = {
-        'df': df,
-        #'X_train_std': X_train_std,
-        #'y_train': y_train,
-        #'X_test_std': X_test_std,
-        'y_test': y_test,
-        'gs.best_params_': gs.best_params_,
-        'gs.best_score_': gs.best_score_,
-        'gs.best_estimator_': gs.best_estimator_,
-        'gs': gs
-    }
+        #gs = gs.fit ( X_train_std, y_train )
 
+        variables_modelo = {
+            #'df': df,
+            'X_train_std': X_train_std,
+            'y_train': y_train,
+            'X_test_std': X_test_std,
+            'y_test': y_test,
+            'gs.best_params_': gs.best_params_,
+            'gs.best_score_': gs.best_score_,
+            'gs.best_estimator_': gs.best_estimator_,
+            'gs': gs
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
 
     return variables_modelo
 
@@ -900,278 +921,236 @@ def loadModelo(fileId, fileName, varEliminar, target, test):
 # URL de generación de gráfica
 @app.route(header+'/generaGraficaResultados', methods=['POST'])
 def generaGraficaResultados():
-    # Obtener el nombre del archivo seleccionado
-    fileId = request.form['fileId']
-    # Obtener el tipo de gráfica seleccionado
-    tipoGrafica = request.form['tipoGrafica']
-    # Obtener el título de la gráfica
-    titulo = request.form['titulo'].upper()
-    # Obtener la etiqueta del eje X
-    labelX = request.form['labelEjeX'].upper()
-    # Obtener la etiqueta del eje Y
-    labelY = request.form['labelEjeY'].upper()
-    # Obtener el estilo de la gráfica
-    estilo = request.form['estilo']
-    # Obtener el tema de la gráfica
-    tema = request.form['tema']
-    # Obtener el nombre del modelo
-    modelName = request.form['modelName']
-    #Obtener variables que se eliminaran
-    varEliminar = request.form['varEliminar']
-    # Obtener variable objetivo
-    target = request.form['varObjetivo']
-    #Obtener %test
-    test = request.form['test']
+    
+    try:
+        # Obtener el nombre del archivo seleccionado
+        fileId = request.form['fileId']
+        # Obtener el tipo de gráfica seleccionado
+        tipoGrafica = request.form['tipoGrafica']
+        # Obtener el título de la gráfica
+        titulo = request.form['titulo'].upper()
+        # Obtener la etiqueta del eje X
+        labelX = request.form['labelEjeX'].upper()
+        # Obtener la etiqueta del eje Y
+        labelY = request.form['labelEjeY'].upper()
+        # Obtener el estilo de la gráfica
+        estilo = request.form['estilo']
+        # Obtener el tema de la gráfica
+        tema = request.form['tema']
+        # Obtener el nombre del modelo
+        modelName = request.form['modelName']
+        #Obtener variables que se eliminaran
+        varEliminar = request.form['varEliminar']
+        # Obtener variable objetivo
+        target = request.form['varObjetivo']
+        #Obtener %test
+        test = request.form['test']
 
-    if (test == '20'):
-        test = 0.2
-    elif (test == '10'):
-        test = 0.1
-    elif (test == '30'):
-        test = 0.3
+        if (test == '20'):
+            test = 0.2
+        elif (test == '10'):
+            test = 0.1
+        elif (test == '30'):
+            test = 0.3
 
-    # Comprobar si se recibió un archivo en la solicitud
-    hayArchivo = request.form['hayArchivo']
+        # Comprobar si se recibió un archivo en la solicitud
+        hayArchivo = request.form['hayArchivo']
 
-    if(hayArchivo == 'true'):
-        file = request.files['file']
-        if file:
-            file.save(os.path.join(CSV_FOLDER, secure_filename(file.filename)))
-            model=loadModelo(fileId, file.filename, varEliminar, target, test)
-    else:
-        model = generaModelo(fileId, modelName, varEliminar, target, test)
-
-    custom_params = {"axes.spines.right": False, "axes.spines.top": False}
-    sns.set_theme(style=estilo, rc=custom_params, palette=tema)
-
-    print('Parameter setting that gave the best results on the hold out data:', model.get('gs.best_params_'))
-    print('Mean cross-validated score of the best_estimator: %.3f' % model.get('gs.best_score_'))
-
-    gs = model.get('gs').best_estimator_
-
-    #gs.fit(model.get('X_train_std'), model.get('y_train'))
-    y_pred = gs.predict(model.get('X_test_std'))
-    #print(f'Accuracy train score: %.4f' % gs.score(model.get('X_train_std'), model.get('y_train')))
-    print(f'Accuracy test score: %.4f' % accuracy_score(model.get('y_test'), y_pred))
-
-    if(tipoGrafica == 'curvaroc'):
-        # Convertir las etiquetas en formato binarizado para la estrategia One-vs-Rest
-        y_test_bin = label_binarize(model.get('y_test'), classes=np.unique(model.get('y_test')))
-        y_prob_bin = gs.predict_proba(model.get('X_test_std'))
-
-        # Graficar las curvas ROC para cada clase
-        fpr = dict()
-        tpr = dict()
-        roc_auc = dict()
-        for i in range(len(np.unique(model.get('y_test')))):
-            fpr[i], tpr[i], _ = roc_curve(y_test_bin[:, i], y_prob_bin[:, i])
-            roc_auc[i] = auc(fpr[i], tpr[i])
-
-        # Obtener las etiquetas originales de las clases
-        class_labels = category_mappings[target]
-
-        # Graficar todas las curvas ROC
-        plt.figure(figsize=(9, 6))
-        colors = cycle(['aqua', 'darkorange', 'cornflowerblue'])
-        for class_index, color in zip(range(len(class_labels)), colors):
-            # Obtener el nombre de la clase a partir de las etiquetas originales
-            class_name = class_labels[class_index]
-            plt.plot(fpr[class_index], tpr[class_index], color=color, lw=2,
-                label=f'ROC curve of class {class_name} (area = {roc_auc[class_index]:.2f})')
-
-        plt.plot([0, 1], [0, 1], 'k--', lw=2)
-        if labelX:
-            plt.xlabel(labelX)
+        if(hayArchivo == 'true'):
+            file = request.files['file']
+            if file:
+                file.save(os.path.join(CSV_FOLDER, secure_filename(file.filename)))
+                model=loadModelo(fileId, file.filename, varEliminar, target, test)
         else:
-            plt.xlabel('False Positive Rate')
-        if labelY:
-            plt.ylabel(labelY)
-        else:
-            plt.ylabel('True Positive Rate')
-        
-        if titulo:
-            plt.title(titulo, size = 20, weight='bold')
-        else:
-            plt.title('Receiver Operating Characteristic (ROC) Curve - One-vs-Rest', size = 20, weight='bold')
-            
-        plt.legend(loc="lower right")
+            model = generaModelo(fileId, modelName, varEliminar, target, test)
 
-        # Guardar la gráfica en un archivo
-        num = len(GENERATED_RESULT_GRAPHICS)
-        filename = f'result_{num+1}.png'
-        filepath = os.path.join(GRAPHICS_FOLDER, filename)
-        plt.savefig(filepath)
-        plt.close()
-        GENERATED_RESULT_GRAPHICS[filename] = os.path.join('graphics', filename)
+        if('error' in model):
+            return 'No se ha podido generar el modelo: ' + model['error'], 400
 
-    elif tipoGrafica == 'matrizconfusion':
-        # Calcular la matriz de confusión
-        cm = confusion_matrix(model.get('y_test'), y_pred)
+        custom_params = {"axes.spines.right": False, "axes.spines.top": False}
+        sns.set_theme(style=estilo, rc=custom_params, palette=tema)
 
-        # Normalizar la matriz de confusión para mostrar porcentajes
-        cm_normalized = cm/np.sum(cm)
+        print('Parameter setting that gave the best results on the hold out data:', model.get('gs.best_params_'))
+        print('Mean cross-validated score of the best_estimator: %.3f' % model.get('gs.best_score_'))
 
-        # Obtener las etiquetas originales de las clases
-        class_labels = [category_mappings[target][i] for i in np.unique(model.get('y_test'))]
+        gs = model.get('gs').best_estimator_
 
-        # Graficar la matriz de confusión con etiquetas de clases originales y porcentajes
-        plt.figure(figsize=(9, 6))
-        sns.heatmap(cm_normalized, annot=True, fmt='.2%', cmap=tema, xticklabels=class_labels, yticklabels=class_labels)
-        if titulo:
-            plt.title(titulo, size=20, weight='bold')
-        else:
-            plt.title('Matriz de confusión', size=20, weight='bold')
+        #gs.fit(model.get('X_train_std'), model.get('y_train'))
+        y_pred = gs.predict(model.get('X_test_std'))
+        #print(f'Accuracy train score: %.4f' % gs.score(model.get('X_train_std'), model.get('y_train')))
+        print(f'Accuracy test score: %.4f' % accuracy_score(model.get('y_test'), y_pred))
 
-        if labelX:
-            plt.xlabel(labelX)
-        else:
-            plt.xlabel('Predicted labels')
+        if(tipoGrafica == 'curvaroc'):
+            # Convertir las etiquetas en formato binarizado para la estrategia One-vs-Rest
+            y_test_bin = label_binarize(model.get('y_test'), classes=np.unique(model.get('y_test')))
+            y_prob_bin = gs.predict_proba(model.get('X_test_std'))
 
-        if labelY:
-            plt.ylabel(labelY)
-        else:
-            plt.ylabel('True labels')
+            # Graficar las curvas ROC para cada clase
+            fpr = dict()
+            tpr = dict()
+            roc_auc = dict()
+            for i in range(len(np.unique(model.get('y_test')))):
+                fpr[i], tpr[i], _ = roc_curve(y_test_bin[:, i], y_prob_bin[:, i])
+                roc_auc[i] = auc(fpr[i], tpr[i])
 
-        # Guardar la gráfica en un archivo
-        num = len(GENERATED_RESULT_GRAPHICS)
-        filename = f'result_{num+1}.png'
-        filepath = os.path.join(GRAPHICS_FOLDER, filename)
-        plt.savefig(filepath)
-        plt.close()
-        GENERATED_RESULT_GRAPHICS[filename] = os.path.join('graphics', filename)
+            # Obtener las etiquetas originales de las clases
+            class_labels = category_mappings[target]
 
-    elif (tipoGrafica == 'curvapr'):
-        # Convertir las etiquetas en formato binarizado para la estrategia One-vs-Rest
-        y_test_bin = label_binarize(model.get('y_test'), classes=np.unique(model.get('y_test')))
-        y_prob_bin = gs.predict_proba(model.get('X_test_std'))
+            # Graficar todas las curvas ROC
+            plt.figure(figsize=(9, 6))
+            colors = cycle(['aqua', 'darkorange', 'cornflowerblue'])
+            for class_index, color in zip(range(len(class_labels)), colors):
+                # Obtener el nombre de la clase a partir de las etiquetas originales
+                class_name = class_labels[class_index]
+                plt.plot(fpr[class_index], tpr[class_index], color=color, lw=2,
+                    label=f'ROC curve of class {class_name} (area = {roc_auc[class_index]:.2f})')
 
-        # Graficar las curvas PR para cada clase
-        precision = dict()
-        recall = dict()
-        pr_auc = dict()
-        for i in range(len(np.unique(model.get('y_test')))):
-            precision[i], recall[i], _ = precision_recall_curve(y_test_bin[:, i], y_prob_bin[:, i])
-            pr_auc[i] = auc(recall[i], precision[i])
+            plt.plot([0, 1], [0, 1], 'k--', lw=2)
 
-        # Obtener las etiquetas originales de las clases
-        class_labels = category_mappings[target]
+            plt.xlabel(labelX if labelX else 'False Positive Rate')
+            plt.ylabel(labelY if labelY else 'True Positive Rate')
+            plt.title(titulo if titulo else 'Receiver Operating Characteristic (ROC) Curve - One-vs-Rest', size = 18, weight='bold')
 
-        # Graficar todas las curvas PR
-        plt.figure(figsize=(9, 6))
-        colors = cycle(['aqua', 'darkorange', 'cornflowerblue'])
-        for class_index, color in zip(range(len(class_labels)), colors):
-            # Obtener el nombre de la clase a partir de las etiquetas originales
-            class_name = class_labels[class_index]
-            plt.plot(recall[class_index], precision[class_index], color=color, lw=2,
-                     label=f'PR curve of class {class_name} (area = {pr_auc[class_index]:.2f})')
+            plt.legend(loc="lower right")
 
-        if labelX:
-            plt.xlabel(labelX)
-        else:
-            plt.xlabel('Recall')
+            # Guardar la gráfica en un archivo
+            num = len(GENERATED_RESULT_GRAPHICS)
+            filename = f'result_{num+1}.png'
+            filepath = os.path.join(GRAPHICS_FOLDER, filename)
+            plt.savefig(filepath)
+            plt.close()
+            GENERATED_RESULT_GRAPHICS[filename] = os.path.join('graphics', filename)
 
-        if labelY:
-            plt.ylabel(labelY)
-        else:
-            plt.ylabel('Precisión')
-            
-        if titulo:
-            plt.title(titulo, size = 20, weight='bold')
-        else:
-            plt.title('Precision-Recall Curve - One-vs-Rest', size = 20, weight='bold')
-        plt.legend(loc="lower right")
+        elif tipoGrafica == 'matrizconfusion':
+            # Calcular la matriz de confusión
+            cm = confusion_matrix(model.get('y_test'), y_pred)
 
-        # Guardar la gráfica en un archivo
-        num = len(GENERATED_RESULT_GRAPHICS)
-        filename = f'result_{num+1}.png'
-        filepath = os.path.join(GRAPHICS_FOLDER, filename)
-        plt.savefig(filepath)
-        plt.close()
-        GENERATED_RESULT_GRAPHICS[filename] = os.path.join('graphics', filename)
+            # Normalizar la matriz de confusión para mostrar porcentajes
+            cm_normalized = cm/np.sum(cm)
 
-    elif (tipoGrafica == 'curvaaprendizaje'):
-        # Graficar la curva de aprendizaje
-        train_sizes, train_scores, test_scores = learning_curve(gs, model.get('X_train_std'), model.get('y_train'), cv=5, n_jobs=-1)
+            # Obtener las etiquetas originales de las clases
+            class_labels = [category_mappings[target][i] for i in np.unique(model.get('y_test'))]
 
-        train_scores_mean = np.mean(train_scores, axis=1)
-        train_scores_std = np.std(train_scores, axis=1)
-        test_scores_mean = np.mean(test_scores, axis=1)
-        test_scores_std = np.std(test_scores, axis=1)
+            # Graficar la matriz de confusión con etiquetas de clases originales y porcentajes
+            plt.figure(figsize=(9, 6))
+            sns.heatmap(cm_normalized, annot=True, fmt='.2%', cmap=tema, xticklabels=class_labels, yticklabels=class_labels)
 
-        plt.figure(figsize=(9, 6))
-        plt.fill_between(train_sizes, train_scores_mean - train_scores_std,
-                         train_scores_mean + train_scores_std, alpha=0.1, color="r")
-        plt.fill_between(train_sizes, test_scores_mean - test_scores_std,
-                         test_scores_mean + test_scores_std, alpha=0.1, color="g")
-        plt.plot(train_sizes, train_scores_mean, 'o-', color="r", label="Training score")
-        plt.plot(train_sizes, test_scores_mean, 'o-', color="g", label="Cross-validation score")
+            plt.xlabel(labelX if labelX else 'Predicted labels')
+            plt.ylabel(labelY if labelY else 'True labels')
+            plt.title(titulo if titulo else 'Confussion Matrix', size = 18, weight='bold')
 
-        if labelX:
-            plt.xlabel(labelX)
-        else:
-            plt.xlabel("Training examples")
-        
-        if labelY:
-            plt.ylabel(labelY)
-        else:
-            plt.ylabel("Score")
-        if titulo:
-            plt.title(titulo, size = 20, weight='bold')
-        else:
-            plt.title("Learning Curve", size = 20, weight='bold')
-        plt.legend(loc="best")
+            # Guardar la gráfica en un archivo
+            num = len(GENERATED_RESULT_GRAPHICS)
+            filename = f'result_{num+1}.png'
+            filepath = os.path.join(GRAPHICS_FOLDER, filename)
+            plt.savefig(filepath)
+            plt.close()
+            GENERATED_RESULT_GRAPHICS[filename] = os.path.join('graphics', filename)
 
-        # Guardar la gráfica en un archivo
-        num = len(GENERATED_RESULT_GRAPHICS)
-        filename = f'result_{num+1}.png'
-        filepath = os.path.join(GRAPHICS_FOLDER, filename)
-        plt.savefig(filepath)
-        plt.close()
-        GENERATED_RESULT_GRAPHICS[filename] = os.path.join('graphics', filename)
+        elif (tipoGrafica == 'curvapr'):
+            # Convertir las etiquetas en formato binarizado para la estrategia One-vs-Rest
+            y_test_bin = label_binarize(model.get('y_test'), classes=np.unique(model.get('y_test')))
+            y_prob_bin = gs.predict_proba(model.get('X_test_std'))
 
-    elif (tipoGrafica == 'curvavalidacion'):
-        # Graficar la curva de validación
-        param_range = [0.1, 1, 10]
-        train_scores, test_scores = validation_curve(gs, model.get('X_train_std'), model.get('y_train'), param_name='C', param_range=param_range, cv=5)
+            # Graficar las curvas PR para cada clase
+            precision = dict()
+            recall = dict()
+            pr_auc = dict()
+            for i in range(len(np.unique(model.get('y_test')))):
+                precision[i], recall[i], _ = precision_recall_curve(y_test_bin[:, i], y_prob_bin[:, i])
+                pr_auc[i] = auc(recall[i], precision[i])
 
-        train_scores_mean = np.mean(train_scores, axis=1)
-        train_scores_std = np.std(train_scores, axis=1)
-        test_scores_mean = np.mean(test_scores, axis=1)
-        test_scores_std = np.std(test_scores, axis=1)
+            # Obtener las etiquetas originales de las clases
+            class_labels = category_mappings[target]
 
-        plt.figure(figsize=(9, 6))
-        plt.fill_between(param_range, train_scores_mean - train_scores_std,
-                         train_scores_mean + train_scores_std, alpha=0.1, color="r")
-        plt.fill_between(param_range, test_scores_mean - test_scores_std,
-                         test_scores_mean + test_scores_std, alpha=0.1, color="g")
-        plt.plot(param_range, train_scores_mean, 'o-', color="r", label="Training score")
-        plt.plot(param_range, test_scores_mean, 'o-', color="g", label="Cross-validation score")
+            # Graficar todas las curvas PR
+            plt.figure(figsize=(9, 6))
+            colors = cycle(['aqua', 'darkorange', 'cornflowerblue'])
+            for class_index, color in zip(range(len(class_labels)), colors):
+                # Obtener el nombre de la clase a partir de las etiquetas originales
+                class_name = class_labels[class_index]
+                plt.plot(recall[class_index], precision[class_index], color=color, lw=2,
+                         label=f'PR curve of class {class_name} (area = {pr_auc[class_index]:.2f})')
+                
+            plt.xlabel(labelX if labelX else 'Recall')
+            plt.ylabel(labelY if labelY else 'Precission')
+            plt.title(titulo if titulo else 'Precision-Recall Curve - One-vs-Rest', size = 18, weight='bold')
+            plt.legend(loc="lower right")
 
-        if labelX:
-            plt.xlabel(labelX)
-        else:
-            plt.xlabel("Parameter C")
+            # Guardar la gráfica en un archivo
+            num = len(GENERATED_RESULT_GRAPHICS)
+            filename = f'result_{num+1}.png'
+            filepath = os.path.join(GRAPHICS_FOLDER, filename)
+            plt.savefig(filepath)
+            plt.close()
+            GENERATED_RESULT_GRAPHICS[filename] = os.path.join('graphics', filename)
 
-        if labelY:
-            plt.ylabel(labelY)
-        else:
-            plt.ylabel("Score")
+        elif (tipoGrafica == 'curvaaprendizaje'):
+            # Graficar la curva de aprendizaje
+            train_sizes, train_scores, test_scores = learning_curve(gs, model.get('X_train_std'), model.get('y_train'), cv=5, n_jobs=-1)
 
-        if titulo:
-            plt.title(titulo, size = 20, weight='bold')
-        else:
-            plt.title("Validation Curve", size = 20, weight='bold')
-        plt.legend(loc="best")
+            train_scores_mean = np.mean(train_scores, axis=1)
+            train_scores_std = np.std(train_scores, axis=1)
+            test_scores_mean = np.mean(test_scores, axis=1)
+            test_scores_std = np.std(test_scores, axis=1)
 
-        # Guardar la gráfica en un archivo
-        num = len(GENERATED_RESULT_GRAPHICS)
-        filename = f'result_{num+1}.png'
-        filepath = os.path.join(GRAPHICS_FOLDER, filename)
-        plt.savefig(filepath)
-        plt.close()
-        GENERATED_RESULT_GRAPHICS[filename] = os.path.join('graphics', filename)
+            plt.figure(figsize=(9, 6))
+            plt.fill_between(train_sizes, train_scores_mean - train_scores_std,
+                             train_scores_mean + train_scores_std, alpha=0.1, color="r")
+            plt.fill_between(train_sizes, test_scores_mean - test_scores_std,
+                             test_scores_mean + test_scores_std, alpha=0.1, color="g")
+            plt.plot(train_sizes, train_scores_mean, 'o-', color="r", label="Training score")
+            plt.plot(train_sizes, test_scores_mean, 'o-', color="g", label="Cross-validation score")
 
-    return 'Gráfica generada exitosamente', 200
+            plt.xlabel(labelX if labelX else 'Training examples')
+            plt.ylabel(labelY if labelY else 'Score')
+            plt.title(titulo if titulo else 'Learning Curve', size = 18, weight='bold')
+            plt.legend(loc="best")
+
+            # Guardar la gráfica en un archivo
+            num = len(GENERATED_RESULT_GRAPHICS)
+            filename = f'result_{num+1}.png'
+            filepath = os.path.join(GRAPHICS_FOLDER, filename)
+            plt.savefig(filepath)
+            plt.close()
+            GENERATED_RESULT_GRAPHICS[filename] = os.path.join('graphics', filename)
+
+        elif (tipoGrafica == 'curvavalidacion'):
+            # Graficar la curva de validación
+            param_range = [0.1, 1, 10]
+            train_scores, test_scores = validation_curve(gs, model.get('X_train_std'), model.get('y_train'), param_name='C', param_range=param_range, cv=5)
+
+            train_scores_mean = np.mean(train_scores, axis=1)
+            train_scores_std = np.std(train_scores, axis=1)
+            test_scores_mean = np.mean(test_scores, axis=1)
+            test_scores_std = np.std(test_scores, axis=1)
+
+            plt.figure(figsize=(9, 6))
+            plt.fill_between(param_range, train_scores_mean - train_scores_std,
+                             train_scores_mean + train_scores_std, alpha=0.1, color="r")
+            plt.fill_between(param_range, test_scores_mean - test_scores_std,
+                             test_scores_mean + test_scores_std, alpha=0.1, color="g")
+            plt.plot(param_range, train_scores_mean, 'o-', color="r", label="Training score")
+            plt.plot(param_range, test_scores_mean, 'o-', color="g", label="Cross-validation score")
+
+            plt.xlabel(labelX if labelX else 'Parameter C')
+            plt.ylabel(labelY if labelY else 'Score')
+            plt.title(titulo if titulo else 'Validation Curve', size = 18, weight='bold')
+            plt.legend(loc="best")
+
+            # Guardar la gráfica en un archivo
+            num = len(GENERATED_RESULT_GRAPHICS)
+            filename = f'result_{num+1}.png'
+            filepath = os.path.join(GRAPHICS_FOLDER, filename)
+            plt.savefig(filepath)
+            plt.close()
+            GENERATED_RESULT_GRAPHICS[filename] = os.path.join('graphics', filename)
+
+    except Exception as e:
+        #print('No se ha podido generar el gráfico: ' + e)
+        return 'No se ha podido generar el gráfico: ' + str(e), 400
+
+    return 'Gráfico generado exitosamente', 200
 
 ################################################################################################################################################
 # Añadimos al registro la función de eliminación de carpetas temporales

@@ -82,7 +82,7 @@ const SideMenu = () => {
                 <li>
                     <NavLink to="/cognidash/nueva-grafica"><button className='btn btn-primary btn-rounded' style={{width: '60%'}}><span><img src={agregarLogo} alt='logo' style={{width: '15%'}}/> Añadir gráfica</span></button></NavLink>
                 </li>
-                <li style={{position: 'relative', top: '365px'}}>
+                <li style={{position: 'relative', bottom: '-100px'}}>
                     <button className='btn btn-danger btn-rounded' onClick={handleLogout}>Cerrar sesión</button>
                 </li>
             </ul>

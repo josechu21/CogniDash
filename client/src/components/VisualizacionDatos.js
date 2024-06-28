@@ -68,6 +68,7 @@ function VisualizacionDatos({msg, setMsg, alert, setAlert}) {
 
     const handleSubmit = (event) => {
         event.preventDefault();
+        setLoading(true); // Activar el loader al enviar el formulario
 
         const formData = new FormData();
         formData.append('fileId', selectedOption);
@@ -91,7 +92,8 @@ function VisualizacionDatos({msg, setMsg, alert, setAlert}) {
             } else {
                 response.text().then(data => {
                     setAlert('alert alert-danger mt-3');
-                    setMsg('Error al generar la gráfica: ' + data);
+                    setMsg('Error al generar gráfico. ' + data);
+                    setLoading(false);
                 });
             }
         }

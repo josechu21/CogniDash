@@ -33,10 +33,7 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
 
     const [titulo, setTitulo] = useState('');
     const [labelEjeX, setLabelEjeX] = useState('');
-    const [valueEjeX, setValueEjeX] = useState('');
-    const [valueHue, setValueHue] = useState('');
     const [labelEjeY, setLabelEjeY] = useState('');
-    const [valueEjeY, setValueEjeY] = useState('');
     const [estilo, setEstilo] = useState('ticks');
     const [tema, setTema] = useState('Pastel1');
     const [varEliminar, setVarEliminar] = useState('');
@@ -171,7 +168,7 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
             } else {
                 response.text().then(data => {
                     setAlert('alert alert-danger mt-3');
-                    setMsg('Error al generar la gráfica: ' + data);
+                    setMsg('Error al generar gráfico. ' + data);
                     setLoading(false);
                 });
             }
@@ -329,21 +326,21 @@ function VisualizacionResultados({ msg, setMsg, alert, setAlert }) {
                         <div id="tercerPaso" className='form-check'>
                             <hr className="separator" />
                             <h2>Paso 4: Establece los parámetros</h2>
-                            <CurvaPr titulo={titulo} setTitulo={setTitulo} labelEjeX={labelEjeX} setLabelEjeX={setLabelEjeX} valueEjeX={valueEjeX} setValueEjeX={setValueEjeX} labelEjeY={labelEjeY} setLabelEjeY={setLabelEjeY} valueEjeY={valueEjeY} setValueEjeY={setValueEjeY} valueHue={valueHue} setValueHue={setValueHue} estilo={estilo} setEstilo={setEstilo} tema={tema} setTema={setTema} />
+                            <CurvaPr titulo={titulo} setTitulo={setTitulo} labelEjeX={labelEjeX} setLabelEjeX={setLabelEjeX} labelEjeY={labelEjeY} setLabelEjeY={setLabelEjeY} estilo={estilo} setEstilo={setEstilo} tema={tema} setTema={setTema} />
                         </div>
                     )}
                     {showThirdStep && selectedCheck === 'curvaaprendizaje' && (
                         <div id="tercerPaso" className='form-check'>
                             <hr className="separator" />
                             <h2>Paso 4: Establece los parámetros</h2>
-                            <CurvaAprendizaje titulo={titulo} setTitulo={setTitulo} labelEjeX={labelEjeX} setLabelEjeX={setLabelEjeX} valueEjeX={valueEjeX} setValueEjeX={setValueEjeX} labelEjeY={labelEjeY} setLabelEjeY={setLabelEjeY} valueEjeY={valueEjeY} setValueEjeY={setValueEjeY} valueHue={valueHue} setValueHue={setValueHue} estilo={estilo} setEstilo={setEstilo} tema={tema} setTema={setTema} />
+                            <CurvaAprendizaje titulo={titulo} setTitulo={setTitulo} labelEjeX={labelEjeX} setLabelEjeX={setLabelEjeX} labelEjeY={labelEjeY} setLabelEjeY={setLabelEjeY} estilo={estilo} setEstilo={setEstilo} tema={tema} setTema={setTema} />
                         </div>
                     )}
                     {showThirdStep && selectedCheck === 'curvavalidacion' && (
                         <div id="tercerPaso" className='form-check'>
                             <hr className="separator" />
                             <h2>Paso 4: Establece los parámetros</h2>
-                            <CurvaValidacion titulo={titulo} setTitulo={setTitulo} estilo={estilo} setEstilo={setEstilo} tema={tema} setTema={setTema} />
+                            <CurvaValidacion titulo={titulo} setTitulo={setTitulo} labelEjeX={labelEjeX} setLabelEjeX={setLabelEjeX} labelEjeY={labelEjeY} setLabelEjeY={setLabelEjeY} estilo={estilo} setEstilo={setEstilo} tema={tema} setTema={setTema} />
                         </div>
                     )}
                 </div>
