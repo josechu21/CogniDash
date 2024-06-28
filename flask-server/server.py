@@ -1118,33 +1118,36 @@ def generaGraficaResultados():
         elif (tipoGrafica == 'curvavalidacion'):
             # Graficar la curva de validación
             param_range = [0.1, 1, 10]
-            train_scores, test_scores = validation_curve(gs, model.get('X_train_std'), model.get('y_train'), param_name='C', param_range=param_range, cv=5)
+            if 'C' in gs.get_params():  # Verifica si el parámetro 'C' es aplicable
+                train_scores, test_scores = validation_curve(gs, model.get('X_train_std'), model.get('y_train'), param_name='C', param_range=param_range, cv=5)
 
-            train_scores_mean = np.mean(train_scores, axis=1)
-            train_scores_std = np.std(train_scores, axis=1)
-            test_scores_mean = np.mean(test_scores, axis=1)
-            test_scores_std = np.std(test_scores, axis=1)
+                train_scores_mean = np.mean(train_scores, axis=1)
+                train_scores_std = np.std(train_scores, axis=1)
+                test_scores_mean = np.mean(test_scores, axis=1)
+                test_scores_std = np.std(test_scores, axis=1)
 
-            plt.figure(figsize=(9, 6))
-            plt.fill_between(param_range, train_scores_mean - train_scores_std,
-                             train_scores_mean + train_scores_std, alpha=0.1, color="r")
-            plt.fill_between(param_range, test_scores_mean - test_scores_std,
-                             test_scores_mean + test_scores_std, alpha=0.1, color="g")
-            plt.plot(param_range, train_scores_mean, 'o-', color="r", label="Training score")
-            plt.plot(param_range, test_scores_mean, 'o-', color="g", label="Cross-validation score")
+                plt.figure(figsize=(9, 6))
+                plt.fill_between(param_range, train_scores_mean - train_scores_std,
+                                 train_scores_mean + train_scores_std, alpha=0.1, color="r")
+                plt.fill_between(param_range, test_scores_mean - test_scores_std,
+                                 test_scores_mean + test_scores_std, alpha=0.1, color="g")
+                plt.plot(param_range, train_scores_mean, 'o-', color="r", label="Training score")
+                plt.plot(param_range, test_scores_mean, 'o-', color="g", label="Cross-validation score")
 
-            plt.xlabel(labelX if labelX else 'Parameter C')
-            plt.ylabel(labelY if labelY else 'Score')
-            plt.title(titulo if titulo else 'Validation Curve', size = 18, weight='bold')
-            plt.legend(loc="best")
+                plt.xlabel(labelX if labelX else 'Parameter C')
+                plt.ylabel(labelY if labelY else 'Score')
+                plt.title(titulo if titulo else 'Validation Curve', size = 18, weight='bold')
+                plt.legend(loc="best")
 
-            # Guardar la gráfica en un archivo
-            num = len(GENERATED_RESULT_GRAPHICS)
-            filename = f'result_{num+1}.png'
-            filepath = os.path.join(GRAPHICS_FOLDER, filename)
-            plt.savefig(filepath)
-            plt.close()
-            GENERATED_RESULT_GRAPHICS[filename] = os.path.join('graphics', filename)
+                # Guardar la gráfica en un archivo
+                num = len(GENERATED_RESULT_GRAPHICS)
+                filename = f'result_{num+1}.png'
+                filepath = os.path.join(GRAPHICS_FOLDER, filename)
+                plt.savefig(filepath)
+                plt.close()
+                GENERATED_RESULT_GRAPHICS[filename] = os.path.join('graphics', filename)
+            else:
+                return 'No se ha podido generar la gráfica: El modelo no tiene el parámetro "C" para la curva de validación.', 400
 
     except Exception as e:
         #print('No se ha podido generar el gráfico: ' + e)
